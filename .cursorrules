@@ -1,0 +1,64 @@
+# The Village - Project Intelligence
+
+## Project Overview
+This is a village-themed incremental/idle game inspired by Trimps but with completely original content. The game focuses on managing a peasant settlement with resource management, building construction, job assignment, and village exploration.
+
+## Key Architecture Patterns
+- **Modular Design**: Game systems are separated into logical modules (resources, buildings, jobs, upgrades)
+- **Event-Driven Updates**: UI updates automatically when game state changes
+- **Decimal.js Integration**: All large numbers use Decimal.js for precision
+- **Local Storage**: Save system uses browser's Local Storage API
+- **Responsive Design**: CSS Grid and Flexbox for modern, responsive layout
+
+## Critical Implementation Paths
+1. **Game Initialization**: `initGame()` → `setupEventListeners()` → `startGameLoop()` → `updateAllDisplays()`
+2. **Resource Updates**: `gameTick()` → `updateResources()` → `updateAllDisplays()`
+3. **Building Construction**: `buyBuilding()` → `buildingsQueue` → `updateBuildingsQueue()` → `calculateBuildingEffects()`
+4. **Job Assignment**: `buyJob()` → `job.owned++` → `calculateBuildingEffects()`
+5. **Save System**: `save()` → `JSON.stringify()` → `localStorage.setItem()`
+
+## User Preferences and Workflow
+- **Development**: Prefer vanilla JavaScript over frameworks for simplicity
+- **Testing**: Manual testing in browser, focus on user experience
+- **Documentation**: Comprehensive memory bank system for project context
+- **Code Style**: Well-commented, modular, and maintainable code
+
+## Project-Specific Patterns
+- **Resource System**: All resources follow the same pattern: `{owned, max, perSec, total}`
+- **Building System**: All buildings have `{owned, cost, description, effect, effectValue}`
+- **Job System**: All jobs have `{owned, cost, description, effect, effectValue}`
+- **Upgrade System**: All upgrades have `{owned, cost, description, effect, effectValue}`
+- **UI Updates**: All displays update through `updateAllDisplays()` function
+
+## Known Challenges
+- **Game Balance**: Ensuring smooth progression from early to late game
+- **Performance**: Maintaining smooth gameplay with large numbers
+- **Mobile UX**: Touch-friendly interface for mobile devices
+- **Save Compatibility**: Handling save file version differences
+
+## Evolution of Project Decisions
+- **Started with**: Trimps-inspired structure but original content
+- **Chose**: Village theme over abstract concepts for accessibility
+- **Implemented**: Peasant workforce as core mechanic
+- **Added**: Building queue system for construction management
+- **Integrated**: Job assignment system for specialized production
+
+## Tool Usage Patterns
+- **Development**: HTML/CSS/JavaScript in text editor
+- **Testing**: Browser-based testing with developer tools
+- **Version Control**: Git for code management
+- **Documentation**: Markdown files in memory-bank directory
+- **Deployment**: Static file hosting (no server required)
+
+## Code Organization
+- **config.js**: Game data, configuration, and initial state
+- **main.js**: Core game logic, UI updates, and user interactions
+- **css/style.css**: All styling with responsive design
+- **index.html**: Game structure and UI elements
+- **memory-bank/**: Project documentation and context
+
+## Future Development Considerations
+- **Extensibility**: Easy to add new buildings, jobs, and upgrades
+- **Performance**: Optimized for long play sessions
+- **Content**: Ready for additional game content and features
+- **Platform**: Could be expanded to mobile apps or desktop versions

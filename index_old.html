@@ -1,0 +1,1787 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Village - Peasant Management Game</title>
+    <meta name="description" content="Manage your village and grow your peasant population">
+    
+    <!-- Game Logic - Modular Structure -->
+    <script type="module" src="js/main.js"></script>
+    
+    <style>
+        /* 4-Quadrant Layout Styles */
+        body {
+            margin: 0;
+            padding: 0;
+            height: 100vh;
+            overflow: hidden;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+            font-family: 'Times New Roman', Times, Georgia, 'Book Antiqua', serif;
+        }
+        
+         .game-container {
+             display: grid;
+             grid-template-columns: 40% 60%;
+             grid-template-rows: 25% 70% 5%;
+             gap: 4px;
+             height: 100vh;
+             padding: 4px;
+             box-sizing: border-box;
+             overflow: hidden;
+         }
+        
+         .top-left {
+             grid-column: 1;
+             grid-row: 1;
+             display: flex;
+             flex-direction: column;
+             gap: 4px;
+         }
+        
+         .resource-list {
+             display: flex;
+             flex-direction: column;
+             gap: 4px;
+         }
+        
+         .top-right {
+             grid-column: 2;
+             grid-row: 1;
+             display: flex;
+             flex-direction: row;
+             gap: 4px;
+         }
+        
+        .bottom-left {
+            grid-column: 1;
+            grid-row: 2;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            min-height: 0;
+        }
+        
+         .bottom-right {
+             grid-column: 2;
+             grid-row: 2;
+             display: flex;
+             flex-direction: column;
+             gap: 4px;
+             overflow: hidden;
+             min-height: 0;
+         }
+        
+        .footer {
+            grid-column: 1 / -1;
+            grid-row: 3;
+            background: rgba(45, 55, 72, 0.8);
+            backdrop-filter: blur(10px);
+            border: 1px solid #4a5568;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            padding: 12px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        /* Resource Card Styles */
+        .resource-card {
+            background: rgba(45, 55, 72, 0.8);
+            backdrop-filter: blur(10px);
+            border: 1px solid #4a5568;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            padding: 8px;
+            transition: all 200ms cubic-bezier(0.4, 0, 0.2, 1);
+            height: auto;
+            min-height: 40px;
+            display: flex;
+            flex-direction: row;
+            align-items: center;
+            justify-content: space-between;
+            box-sizing: border-box;
+        }
+        
+        .resource-card:hover {
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+            transform: translateY(-1px);
+        }
+        
+         .resource-header {
+             display: flex;
+             align-items: center;
+             gap: 8px;
+         }
+        
+        .resource-title {
+            font-size: clamp(0.875rem, 1vw, 1.125rem);
+            font-weight: 600;
+            color: #e2e8f0;
+            letter-spacing: 0.05em;
+        }
+        
+        .resource-value-container {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+        
+        .resource-value {
+            font-size: clamp(1rem, 1.2vw, 1.25rem);
+            font-weight: 700;
+            color: #e2e8f0;
+        }
+        
+        .resource-max {
+            font-size: clamp(0.75rem, 0.8vw, 1rem);
+            color: #a0aec0;
+        }
+        
+        
+         .resource-rate {
+             font-size: clamp(0.75rem, 0.8vw, 1rem);
+             color: #a0aec0;
+             margin-left: 8px;
+         }
+        
+        .resource-extra-line {
+            height: 1em;
+            margin: 0;
+        }
+        
+        .resource-button {
+            width: auto;
+            padding: 6px 12px;
+            background: linear-gradient(145deg, #3182ce, #2c5282);
+            border: 1px solid #3182ce;
+            border-radius: 8px;
+            color: white;
+            font-size: clamp(0.75rem, 0.8vw, 1rem);
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 200ms cubic-bezier(0.4, 0, 0.2, 1);
+            letter-spacing: 0.05em;
+        }
+        
+        .resource-button:hover:not(:disabled) {
+            background: linear-gradient(145deg, #2c5282, #3182ce);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            transform: translateY(-1px);
+        }
+        
+        .resource-button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        /* Story Panel */
+        .story-panel {
+            background: rgba(45, 55, 72, 0.8);
+            backdrop-filter: blur(10px);
+            border: 1px solid #4a5568;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            padding: 12px;
+            flex: 1;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            min-width: 0;
+        }
+        
+        
+        /* Log Tabs */
+         .log-tabs {
+             display: flex;
+             gap: 4px;
+             margin-bottom: 8px;
+             flex-wrap: wrap;
+         }
+        
+        .log-tab {
+            padding: 4px 8px;
+            background: #16213e;
+            border: 1px solid #2d3748;
+            border-radius: 6px;
+            color: #a0aec0;
+            font-size: clamp(0.75rem, 0.8vw, 1rem);
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 200ms cubic-bezier(0.4, 0, 0.2, 1);
+            letter-spacing: 0.05em;
+        }
+        
+        .log-tab:hover {
+            background: #2d3748;
+            color: #e2e8f0;
+        }
+        
+        .log-tab.active {
+            background: #3182ce;
+            border-color: #3182ce;
+            color: white;
+        }
+        
+        .log-toggle.active {
+            background: #22c55e;
+            border-color: #22c55e;
+            color: white;
+        }
+        
+        .log-toggle:not(.active) {
+            background: #e53e3e;
+            border-color: #e53e3e;
+            color: white;
+        }
+        
+        /* Log Content */
+        .log-content {
+            flex: 1;
+            overflow-y: auto;
+            padding-right: 8px;
+        }
+        
+         .log-message {
+             margin-bottom: 4px;
+             padding: 8px;
+             border-radius: 6px;
+             font-size: clamp(0.75rem, 0.8vw, 1rem);
+             line-height: 1.4;
+         }
+        
+        .log-message.StoryMessage {
+            background: rgba(56, 161, 105, 0.1);
+            border-left: 3px solid #38a169;
+            color: #e2e8f0;
+        }
+        
+        .log-message.LootMessage {
+            background: rgba(49, 130, 206, 0.1);
+            border-left: 3px solid #3182ce;
+            color: #e2e8f0;
+        }
+        
+        .log-message.DeathMessage {
+            background: rgba(229, 62, 62, 0.1);
+            border-left: 3px solid #e53e3e;
+            color: #e2e8f0;
+        }
+        
+        .log-message.ConstructionMessage {
+            background: rgba(255, 165, 0, 0.1);
+            border-left: 3px solid #ffa500;
+            color: #e2e8f0;
+        }
+        
+        .log-message.VillagersMessage {
+            background: rgba(34, 197, 94, 0.1);
+            border-left: 3px solid #22c55e;
+            color: #ffffff;
+        }
+        
+        /* People Panel */
+        .people-panel {
+            background: rgba(45, 55, 72, 0.8);
+            backdrop-filter: blur(10px);
+            border: 1px solid #4a5568;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            padding: 12px;
+            transition: all 200ms cubic-bezier(0.4, 0, 0.2, 1);
+            flex: 0 0 20%;
+            min-width: 0;
+        }
+        
+         .people-header {
+             display: flex;
+             justify-content: space-between;
+             align-items: center;
+             margin-bottom: 8px;
+         }
+        
+         .people-title {
+             font-size: clamp(0.875rem, 1vw, 1.125rem);
+             font-weight: 600;
+             color: #e2e8f0;
+             letter-spacing: 0.05em;
+         }
+        
+         .people-population-display {
+             text-align: right;
+         }
+        
+         .people-current-population {
+             font-size: clamp(1rem, 1.2vw, 1.25rem);
+             font-weight: 700;
+             color: #e2e8f0;
+         }
+        
+         .people-max-population {
+             font-size: clamp(0.75rem, 0.8vw, 1rem);
+             color: #a0aec0;
+         }
+         
+         .people-slash {
+             font-size: clamp(0.75rem, 0.8vw, 1rem);
+             color: #a0aec0;
+         }
+        
+         .people-progress-container {
+             margin: 8px 0;
+         }
+        
+        .people-progress-bar {
+            width: 100%;
+            height: 6px;
+            background: #2d3748;
+            border-radius: 9999px;
+            overflow: hidden;
+        }
+        
+        .people-progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #38a169, #63b3ed);
+            border-radius: 9999px;
+            transition: width 200ms cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        
+         .people-rates-container {
+             display: grid;
+             grid-template-columns: 1fr;
+             gap: 4px;
+         }
+        
+         .people-rate-item {
+             padding: 4px 8px;
+             background: #16213e;
+             border-radius: 6px;
+             border: 1px solid #2d3748;
+             text-align: center;
+         }
+        
+         .people-rate-label {
+             font-size: clamp(0.75rem, 0.8vw, 1rem);
+             font-weight: 500;
+             color: #a0aec0;
+             letter-spacing: 0.05em;
+         }
+        
+         .people-rate-value {
+             font-size: clamp(0.75rem, 0.8vw, 1rem);
+             font-weight: 600;
+         }
+        
+        .people-rate-value.positive {
+            color: #38a169;
+        }
+        
+        .people-rate-value.negative {
+            color: #e53e3e;
+        }
+        
+        .people-rate-value.neutral {
+            color: #a0aec0;
+        }
+        
+        /* Work Time Slider */
+         .work-time-container {
+             margin-top: 8px;
+             padding: 8px;
+             background: #16213e;
+             border-radius: 6px;
+             border: 1px solid #2d3748;
+         }
+        
+         .work-time-label {
+             font-size: clamp(0.75rem, 0.8vw, 1rem);
+             font-weight: 500;
+             color: #a0aec0;
+             margin-bottom: 4px;
+             text-align: center;
+         }
+        
+        .work-time-slider {
+            width: 100%;
+            height: 6px;
+            border-radius: 3px;
+            background: #2d3748;
+            outline: none;
+            -webkit-appearance: none;
+        }
+        
+        .work-time-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: #3182ce;
+            cursor: pointer;
+            border: 2px solid #e2e8f0;
+        }
+        
+        .work-time-slider::-moz-range-thumb {
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: #3182ce;
+            cursor: pointer;
+            border: 2px solid #e2e8f0;
+        }
+        
+        /* Building Panel */
+        .building-panel {
+            background: rgba(45, 55, 72, 0.8);
+            backdrop-filter: blur(10px);
+            border: 1px solid #4a5568;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            padding: 12px;
+            height: 100%;
+            overflow-y: auto;
+            box-sizing: border-box;
+        }
+        
+        
+        /* Building Tabs */
+         .building-tabs {
+             display: flex;
+             justify-content: space-between;
+             align-items: center;
+             margin-bottom: 8px;
+         }
+         
+         .building-tabs-left {
+             display: flex;
+             gap: 4px;
+             flex-wrap: wrap;
+         }
+         
+         .city-type-display {
+             font-size: clamp(0.875rem, 1vw, 1.125rem);
+             font-weight: 600;
+             color: #e2e8f0;
+             text-align: right;
+         }
+        
+        .building-tab {
+            padding: 4px 8px;
+            background: #16213e;
+            border: 1px solid #2d3748;
+            border-radius: 6px;
+            color: #a0aec0;
+            font-size: clamp(0.75rem, 0.8vw, 1rem);
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 200ms cubic-bezier(0.4, 0, 0.2, 1);
+            letter-spacing: 0.05em;
+        }
+        
+        .building-tab:hover {
+            background: #2d3748;
+            color: #e2e8f0;
+        }
+        
+        .building-tab.active {
+            background: #3182ce;
+            border-color: #3182ce;
+            color: white;
+        }
+        
+         .building-item {
+             display: flex;
+             justify-content: space-between;
+             align-items: center;
+             padding: 8px;
+             margin-bottom: 4px;
+             background: #16213e;
+             border-radius: 8px;
+             border: 1px solid #2d3748;
+             flex-wrap: nowrap;
+             min-width: 0;
+         }
+        
+        .building-info {
+            flex: 1;
+        }
+        
+         .building-actions {
+             display: flex;
+             flex-direction: column;
+             align-items: flex-end;
+             gap: 2px;
+             flex-shrink: 0;
+             min-width: 120px;
+             max-width: 120px;
+         }
+        
+        .building-description {
+            font-size: clamp(0.75rem, 0.8vw, 0.9rem);
+            color: #a0aec0;
+            margin-top: 2px;
+        }
+        
+        .building-upkeep {
+            font-size: clamp(0.75rem, 0.8vw, 0.9rem);
+            color: #f56565;
+            margin-top: 2px;
+        }
+        
+        .building-name {
+            font-size: clamp(0.875rem, 1vw, 1.125rem);
+            font-weight: 600;
+            color: #e2e8f0;
+            margin-bottom: 4px;
+        }
+        
+        .building-cost {
+            font-size: clamp(0.75rem, 0.8vw, 1rem);
+            color: #a0aec0;
+            white-space: nowrap;
+        }
+        
+        .building-owned {
+            font-size: clamp(0.75rem, 0.8vw, 1rem);
+            color: #a0aec0;
+            margin-right: 8px;
+            white-space: nowrap;
+        }
+        
+        .building-button {
+            padding: 4px 12px;
+            background: linear-gradient(145deg, #3182ce, #2c5282);
+            border: 1px solid #3182ce;
+            border-radius: 8px;
+            color: white;
+            font-size: clamp(0.75rem, 0.8vw, 1rem);
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 200ms cubic-bezier(0.4, 0, 0.2, 1);
+            letter-spacing: 0.05em;
+        }
+        
+        .building-button:hover {
+            background: linear-gradient(145deg, #2c5282, #3182ce);
+            box-shadow: 0 2px 4px -1px rgba(0, 0, 0, 0.1);
+            transform: translateY(-1px);
+        }
+        
+        .building-button.job {
+            background: linear-gradient(145deg, #38a169, #2f855a);
+            border-color: #38a169;
+        }
+        
+        .building-button.job:hover {
+            background: linear-gradient(145deg, #2f855a, #38a169);
+        }
+        
+        .job-buttons {
+            display: flex;
+            gap: 2px;
+        }
+        
+        .job-plus {
+            background: linear-gradient(145deg, #38a169, #2f855a);
+            border-color: #38a169;
+            min-width: 30px;
+        }
+        
+        .job-plus:hover {
+            background: linear-gradient(145deg, #2f855a, #38a169);
+        }
+        
+        .job-minus {
+            background: linear-gradient(145deg, #e53e3e, #c53030);
+            border-color: #e53e3e;
+            min-width: 30px;
+        }
+        
+        .job-minus:hover {
+            background: linear-gradient(145deg, #c53030, #e53e3e);
+        }
+        
+        /* Expedition Panel */
+        .expedition-panel {
+            background: rgba(45, 55, 72, 0.8);
+            backdrop-filter: blur(10px);
+            border: 1px solid #4a5568;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            padding: 12px;
+            margin-bottom: 4px;
+            min-height: 0;
+        }
+        
+        .expedition-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+        
+        .expedition-title {
+            font-size: clamp(0.875rem, 1vw, 1.125rem);
+            font-weight: 600;
+            color: #e2e8f0;
+            letter-spacing: 0.05em;
+        }
+        
+        .expedition-party-size {
+            font-size: clamp(0.75rem, 0.8vw, 1rem);
+            color: #a0aec0;
+        }
+        
+        .expedition-content {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        
+        .expedition-explorer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px;
+            background: #16213e;
+            border-radius: 8px;
+            border: 1px solid #2d3748;
+        }
+        
+        .expedition-job-info {
+            flex: 1;
+        }
+        
+        .expedition-job-name {
+            font-size: clamp(0.875rem, 1vw, 1.125rem);
+            font-weight: 600;
+            color: #e2e8f0;
+            margin-bottom: 4px;
+        }
+        
+        .expedition-job-description {
+            font-size: clamp(0.75rem, 0.8vw, 0.9rem);
+            color: #a0aec0;
+        }
+        
+        .expedition-job-actions {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+            gap: 4px;
+        }
+        
+        .expedition-job-assigned {
+            font-size: clamp(0.75rem, 0.8vw, 1rem);
+            color: #a0aec0;
+        }
+        
+        .expedition-job-buttons {
+            display: flex;
+            gap: 2px;
+        }
+        
+        .expedition-button {
+            padding: 4px 8px;
+            background: linear-gradient(145deg, #3182ce, #2c5282);
+            border: 1px solid #3182ce;
+            border-radius: 6px;
+            color: white;
+            font-size: clamp(0.75rem, 0.8vw, 1rem);
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 200ms cubic-bezier(0.4, 0, 0.2, 1);
+            min-width: 24px;
+        }
+        
+        .expedition-button:hover {
+            background: linear-gradient(145deg, #2c5282, #3182ce);
+            box-shadow: 0 2px 4px -1px rgba(0, 0, 0, 0.1);
+            transform: translateY(-1px);
+        }
+        
+        .expedition-plus {
+            background: linear-gradient(145deg, #38a169, #2f855a);
+            border-color: #38a169;
+        }
+        
+        .expedition-plus:hover {
+            background: linear-gradient(145deg, #2f855a, #38a169);
+        }
+        
+        .expedition-minus {
+            background: linear-gradient(145deg, #e53e3e, #c53030);
+            border-color: #e53e3e;
+        }
+        
+        .expedition-minus:hover {
+            background: linear-gradient(145deg, #c53030, #e53e3e);
+        }
+        
+        .expedition-launch {
+            margin-top: 8px;
+            text-align: center;
+        }
+        
+        .expedition-launch-button {
+            padding: 8px 16px;
+            background: linear-gradient(145deg, #38a169, #2f855a);
+            border: 1px solid #38a169;
+            border-radius: 8px;
+            color: white;
+            font-size: clamp(0.875rem, 1vw, 1.125rem);
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 200ms cubic-bezier(0.4, 0, 0.2, 1);
+            letter-spacing: 0.05em;
+            width: 100%;
+        }
+        
+        .expedition-launch-button:hover {
+            background: linear-gradient(145deg, #2f855a, #38a169);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            transform: translateY(-1px);
+        }
+        
+        .expedition-launch-button:disabled {
+            background: #4a5568;
+            border-color: #4a5568;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        /* Map Panel */
+        .map-panel {
+            background: rgba(45, 55, 72, 0.8);
+            backdrop-filter: blur(10px);
+            border: 1px solid #4a5568;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            padding: 12px;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: #a0aec0;
+            font-size: clamp(0.875rem, 1vw, 1.125rem);
+            min-height: 0;
+            max-height: 100%;
+            overflow: auto;
+        }
+        
+        /* Map Grid */
+        .map-grid {
+            display: grid;
+            grid-template-columns: repeat(8, 1fr);
+            grid-template-rows: repeat(8, 1fr);
+            gap: 2px;
+            width: 100%;
+            max-width: 400px;
+            aspect-ratio: 1;
+        }
+        
+        .map-tile {
+            background: #2d3748;
+            border: 1px solid #4a5568;
+            border-radius: 4px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            font-size: clamp(0.5rem, 0.6vw, 0.75rem);
+            text-align: center;
+            min-height: 40px;
+            transition: all 200ms ease;
+        }
+        
+        .map-tile.explored {
+            background: #38a169;
+            border-color: #2f855a;
+            color: white;
+        }
+        
+        .map-tile.unexplored {
+            background: #4a5568;
+            border-color: #2d3748;
+            color: #a0aec0;
+        }
+        
+        .map-tile:hover {
+            transform: scale(1.05);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        }
+        
+        .tile-type {
+            font-weight: 600;
+            margin-bottom: 2px;
+        }
+        
+        .tile-resources {
+            font-size: clamp(0.4rem, 0.5vw, 0.6rem);
+            color: #fbbf24;
+            font-weight: 500;
+        }
+        
+        .map-stats {
+            margin-top: 8px;
+            font-size: clamp(0.75rem, 0.8vw, 1rem);
+            color: #e2e8f0;
+            text-align: center;
+        }
+        
+        
+        /* Responsive adjustments */
+        @media (max-width: 768px) {
+            .game-container {
+                grid-template-columns: 1fr;
+                grid-template-rows: auto auto auto auto auto;
+                gap: 5px;
+                padding: 5px;
+            }
+            
+            .top-left, .top-right, .bottom-left, .bottom-right, .footer {
+                grid-column: 1;
+            }
+            
+            .top-left {
+                grid-row: 1;
+                grid-template-columns: repeat(2, 1fr);
+                grid-template-rows: repeat(3, 1fr);
+            }
+            
+            .top-right {
+                grid-row: 2;
+            }
+            
+            .bottom-left {
+                grid-row: 3;
+            }
+            
+            .bottom-right {
+                grid-row: 4;
+            }
+            
+            .footer {
+                grid-row: 5;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <!-- Top Left: Resources (40% width) -->
+        <div class="top-left">
+            <div class="resource-list">
+                <div class="resource-card" data-resource="food">
+                    <div class="resource-header">
+                        <div class="resource-title">Food</div>
+                        <div class="resource-value-container">
+                            <div class="resource-value">0</div>
+                            <div class="resource-max">/100</div>
+                        </div>
+                        <div class="resource-rate">+0.000/sec</div>
+                    </div>
+                    <button class="resource-button">Gather</button>
+                </div>
+                
+                <div class="resource-card" data-resource="wood">
+                    <div class="resource-header">
+                        <div class="resource-title">Wood</div>
+                        <div class="resource-value-container">
+                            <div class="resource-value">0</div>
+                            <div class="resource-max">/100</div>
+                        </div>
+                        <div class="resource-rate">+0.000/sec</div>
+                    </div>
+                    <button class="resource-button">Chop</button>
+                </div>
+                
+                <div class="resource-card" data-resource="metal" id="stoneCard" style="display: none;">
+                    <div class="resource-header">
+                        <div class="resource-title">Stone</div>
+                        <div class="resource-value-container">
+                            <div class="resource-value">0</div>
+                            <div class="resource-max">/100</div>
+                        </div>
+                        <div class="resource-rate">+0.000/sec</div>
+                    </div>
+                    <button class="resource-button">Mine</button>
+                </div>
+                
+                <div class="resource-card" data-resource="science" id="knowledgeCard" style="display: none;">
+                    <div class="resource-header">
+                        <div class="resource-title">Knowledge</div>
+                        <div class="resource-value-container">
+                            <div class="resource-value">0</div>
+                            <div class="resource-max">/-1</div>
+                        </div>
+                        <div class="resource-rate">+0.000/sec</div>
+                    </div>
+                    <button class="resource-button">Study</button>
+                </div>
+                
+                <div class="resource-card" data-resource="herbs" id="herbsCard" style="display: none;">
+                    <div class="resource-header">
+                        <div class="resource-title">Herbs</div>
+                        <div class="resource-value-container">
+                            <div class="resource-value">0</div>
+                            <div class="resource-max">/50</div>
+                        </div>
+                        <div class="resource-rate">+0.000/sec</div>
+                    </div>
+                    <button class="resource-button">Collect</button>
+                </div>
+                
+                <div class="resource-card" data-resource="iron" id="ironCard" style="display: none;">
+                    <div class="resource-header">
+                        <div class="resource-title">Iron</div>
+                        <div class="resource-value-container">
+                            <div class="resource-value">0</div>
+                            <div class="resource-max">/100</div>
+                        </div>
+                        <div class="resource-rate">+0.000/sec</div>
+                    </div>
+                    <button class="resource-button">Smelt</button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Top Right: People and Story (60% width) -->
+        <div class="top-right">
+            <div class="people-panel">
+                <div class="people-header">
+                    <div class="people-title">Population</div>
+                    <div class="people-population-display">
+                        <span class="people-current-population people-count">0</span><span class="people-slash">/</span><span class="people-max-population people-cap">10</span>
+                    </div>
+                </div>
+                <div class="people-progress-container">
+                    <div class="people-progress-bar">
+                        <div class="people-progress-fill" style="width: 0%"></div>
+                    </div>
+                </div>
+                <div class="people-rates-container">
+                    <div class="people-rate-item" id="immigrationRate" style="display: none;">
+                        <span class="people-rate-label">Immigration: <span class="people-rate-value positive">+0.000/sec</span></span>
+                    </div>
+                    <div class="people-rate-item" id="birthRate" style="display: none;">
+                        <span class="people-rate-label">Birth Rate: <span class="people-rate-value positive">+0.000/sec</span></span>
+                    </div>
+                    <div class="people-rate-item" id="deathRate" style="display: none;">
+                        <span class="people-rate-label">Death Rate: <span class="people-rate-value negative">-0.000/sec</span></span>
+                    </div>
+                </div>
+                
+                <!-- Work Time Slider -->
+                <div class="work-time-container" id="workTimeContainer" style="display: none;">
+                    <div class="work-time-label">Work Time: <span id="workTimeValue">100</span>%</div>
+                    <input type="range" id="workTimeSlider" min="0" max="100" value="100" class="work-time-slider">
+                </div>
+                
+                <!-- Morale Display -->
+                <div class="work-time-container" id="moraleContainer" style="display: none;">
+                    <div class="work-time-label">Morale: <span id="moraleValue">100</span>%</div>
+                </div>
+            </div>
+            
+            <div class="story-panel">
+                
+                <!-- Log Filter Tabs -->
+                <div class="log-tabs">
+                    <button class="log-tab log-toggle active" data-filter="all">All</button>
+                    <button class="log-tab log-toggle active" data-filter="story">Story</button>
+                    <button class="log-tab log-toggle active" data-filter="construction">Construction</button>
+                    <button class="log-tab log-toggle active" data-filter="loot">Loot</button>
+                    <button class="log-tab log-toggle active" data-filter="villagers">Villagers</button>
+                    <button class="log-tab log-toggle active" data-filter="combat">Combat</button>
+                    <button class="log-tab log-toggle active" data-filter="unlocks">Unlocks</button>
+                </div>
+                
+                <!-- Log Content -->
+                <div id="log" class="log-content">
+                    <div class="log-message StoryMessage" data-type="story">
+                        <span style="margin-right: 5px;">📖</span>
+                        You find yourself in a dark forest clearing, surrounded by towering trees that block out most of the sunlight. The air is thick with mystery and the sounds of unseen creatures. You know you must build a settlement here, but first you need to gather resources and find a way to survive the coming night.
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Bottom Left: Buildings (40% width) -->
+        <div class="bottom-left">
+            <div class="building-panel">
+                
+                <!-- Building Filter Tabs -->
+                <div class="building-tabs">
+                    <div class="building-tabs-left">
+                        <button class="building-tab active" data-filter="all">All</button>
+                        <button class="building-tab" data-filter="buildings">Buildings</button>
+                        <button class="building-tab" data-filter="jobs">Jobs</button>
+                    </div>
+                    <div class="city-type-display" id="cityType"></div>
+                </div>
+                
+                <!-- Buildings Container -->
+                <div class="buildings-container">
+                    <div class="building-item" data-building="Campfire" data-type="building">
+                        <div class="building-info">
+                            <div class="building-name">Campfire</div>
+                            <div class="building-description">Attracts 1 peasant every 10 seconds</div>
+                            <div class="building-upkeep">Upkeep: 0.5 Wood/sec</div>
+                        </div>
+                        <div class="building-actions">
+                            <div class="building-owned">Owned: 0</div>
+                            <button class="building-button">Build</button>
+                            <div class="building-cost">Cost: 10 Wood</div>
+                        </div>
+                    </div>
+                    
+                    <div class="building-item" data-building="WoodenHut" data-type="building" style="display: none;">
+                        <div class="building-info">
+                            <div class="building-name">Wooden Hut</div>
+                            <div class="building-description">Increases peasant cap by 10</div>
+                        </div>
+                        <div class="building-actions">
+                            <div class="building-owned">Owned: 0</div>
+                            <button class="building-button">Build</button>
+                            <div class="building-cost">Cost: 100 Wood</div>
+                        </div>
+                    </div>
+                    
+                    <div class="building-item" data-building="Granary" data-type="building" style="display: none;">
+                        <div class="building-info">
+                            <div class="building-name">Granary</div>
+                            <div class="building-description">Increases food storage capacity by 50</div>
+                        </div>
+                        <div class="building-actions">
+                            <div class="building-owned">Owned: 0</div>
+                            <button class="building-button">Build</button>
+                            <div class="building-cost">Cost: 50 Wood, 25 Food</div>
+                        </div>
+                    </div>
+                    
+                    <div class="building-item" data-building="Lumberyard" data-type="building" style="display: none;">
+                        <div class="building-info">
+                            <div class="building-name">Lumberyard</div>
+                            <div class="building-description">Increases wood storage capacity by 100</div>
+                        </div>
+                        <div class="building-actions">
+                            <div class="building-owned">Owned: 0</div>
+                            <button class="building-button">Build</button>
+                            <div class="building-cost">Cost: 75 Wood</div>
+                        </div>
+                    </div>
+                    
+                    <div class="building-item" data-building="HerbGarden" data-type="building" style="display: none;">
+                        <div class="building-info">
+                            <div class="building-name">Herb Garden</div>
+                            <div class="building-description">Increases herb storage capacity by 75</div>
+                        </div>
+                        <div class="building-actions">
+                            <div class="building-owned">Owned: 0</div>
+                            <button class="building-button">Build</button>
+                            <div class="building-cost">Cost: 40 Wood, 10 Herbs</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Jobs Container -->
+                <div class="jobs-container">
+                    <div class="building-item" data-job="Farmer" data-type="job" style="display: none;">
+                        <div class="building-info">
+                            <div class="building-name">Farmer</div>
+                            <div class="building-description">Produces 1 Food/sec per farmer</div>
+                        </div>
+                        <div class="building-actions">
+                            <div class="building-owned">Assigned: 0</div>
+                            <div class="job-buttons">
+                                <button class="building-button job job-plus" data-action="assign">+</button>
+                                <button class="building-button job job-minus" data-action="remove">-</button>
+                            </div>
+                            <div class="building-cost">Cost: 1 Peasant</div>
+                        </div>
+                    </div>
+                    
+                    <div class="building-item" data-job="Woodcutter" data-type="job" style="display: none;">
+                        <div class="building-info">
+                            <div class="building-name">Woodcutter</div>
+                            <div class="building-description">Produces 1 Wood/sec per woodcutter</div>
+                        </div>
+                        <div class="building-actions">
+                            <div class="building-owned">Assigned: 0</div>
+                            <div class="job-buttons">
+                                <button class="building-button job job-plus" data-action="assign">+</button>
+                                <button class="building-button job job-minus" data-action="remove">-</button>
+                            </div>
+                            <div class="building-cost">Cost: 1 Peasant</div>
+                        </div>
+                    </div>
+                    
+                    <div class="building-item" data-job="Herbalist" data-type="job" style="display: none;">
+                        <div class="building-info">
+                            <div class="building-name">Herbalist</div>
+                            <div class="building-description">Produces 1 Herb/sec per herbalist</div>
+                        </div>
+                        <div class="building-actions">
+                            <div class="building-owned">Assigned: 0</div>
+                            <div class="job-buttons">
+                                <button class="building-button job job-plus" data-action="assign">+</button>
+                                <button class="building-button job job-minus" data-action="remove">-</button>
+                            </div>
+                            <div class="building-cost">Cost: 1 Peasant</div>
+                        </div>
+                    </div>
+                    
+                    <div class="building-item" data-job="Explorer" data-type="job" style="display: none;">
+                        <div class="building-info">
+                            <div class="building-name">Explorer</div>
+                            <div class="building-description">Hires explorers available for expedition teams</div>
+                        </div>
+                        <div class="building-actions">
+                            <div class="building-owned">Assigned: 0</div>
+                            <div class="job-buttons">
+                                <button class="building-button job job-plus" data-action="assign">+</button>
+                                <button class="building-button job job-minus" data-action="remove">-</button>
+                            </div>
+                            <div class="building-cost">Cost: 1 Peasant</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Bottom Right: Expedition and Map (60% width) -->
+        <div class="bottom-right">
+            <!-- Expedition Panel -->
+            <div class="expedition-panel" id="expeditionPanel" style="display: none;">
+                <div class="expedition-header">
+                    <div class="expedition-title">Expedition Team</div>
+                    <div class="expedition-party-size">Party Size: <span id="expeditionPartySize">0</span>/1</div>
+                </div>
+                <div class="expedition-content">
+                    <div class="expedition-explorer">
+                        <div class="expedition-job-info">
+                            <div class="expedition-job-name">Explorer</div>
+                            <div class="expedition-job-description">Explores 0.1 tiles/sec per explorer</div>
+                        </div>
+                        <div class="expedition-job-actions">
+                            <div class="expedition-job-assigned">Assigned: <span id="expeditionExplorerCount">0</span></div>
+                            <div class="expedition-job-buttons">
+                                <button class="expedition-button expedition-plus" data-action="assign-explorer">+</button>
+                                <button class="expedition-button expedition-minus" data-action="remove-explorer">-</button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="expedition-launch">
+                        <button class="expedition-launch-button" id="launchExpeditionButton" data-action="launch-expedition">Launch Expedition</button>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Map Panel -->
+            <div class="map-panel">
+                <div style="text-align: center;">
+                    <div style="font-size: clamp(1.5rem, 2vw, 2.25rem); margin-bottom: 8px;">🗺️</div>
+                    <div>Village Map</div>
+                    <div style="font-size: clamp(0.75rem, 0.8vw, 1rem); margin-top: 4px;">Explorers will reveal the surrounding lands</div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Footer -->
+        <div class="footer">
+            <div style="display: flex; gap: 8px; justify-content: center; width: 100%;">
+                <button style="padding: 6px 12px; background: linear-gradient(145deg, #3182ce, #2c5282); border: 1px solid #3182ce; border-radius: 8px; color: white; font-size: clamp(0.75rem, 0.8vw, 1rem); font-weight: 500; cursor: pointer; letter-spacing: 0.05em;">
+                    Save
+                </button>
+                <button style="padding: 6px 12px; background: #38a169; border: 1px solid #38a169; border-radius: 8px; color: white; font-size: clamp(0.75rem, 0.8vw, 1rem); font-weight: 500; cursor: pointer; letter-spacing: 0.05em;">
+                    Export
+                </button>
+                <button style="padding: 6px 12px; background: #16213e; border: 1px solid #2d3748; border-radius: 8px; color: #e2e8f0; font-size: clamp(0.75rem, 0.8vw, 1rem); font-weight: 500; cursor: pointer; letter-spacing: 0.05em;">
+                    Import
+                </button>
+                <button style="padding: 6px 12px; background: #16213e; border: 1px solid #2d3748; border-radius: 8px; color: #e2e8f0; font-size: clamp(0.75rem, 0.8vw, 1rem); font-weight: 500; cursor: pointer; letter-spacing: 0.05em;">
+                    Settings
+                </button>
+                
+                <!-- Debug Buttons (for testing only) -->
+                <button id="debugFood" style="padding: 6px 12px; background: #e53e3e; border: 1px solid #e53e3e; border-radius: 8px; color: white; font-size: clamp(0.75rem, 0.8vw, 1rem); font-weight: 500; cursor: pointer; letter-spacing: 0.05em;">
+                    +100 Food
+                </button>
+                <button id="debugWood" style="padding: 6px 12px; background: #e53e3e; border: 1px solid #e53e3e; border-radius: 8px; color: white; font-size: clamp(0.75rem, 0.8vw, 1rem); font-weight: 500; cursor: pointer; letter-spacing: 0.05em;">
+                    +100 Wood
+                </button>
+                <button id="debugStone" style="padding: 6px 12px; background: #e53e3e; border: 1px solid #e53e3e; border-radius: 8px; color: white; font-size: clamp(0.75rem, 0.8vw, 1rem); font-weight: 500; cursor: pointer; letter-spacing: 0.05em;">
+                    +100 Stone
+                </button>
+                <button id="debugKnowledge" style="padding: 6px 12px; background: #e53e3e; border: 1px solid #e53e3e; border-radius: 8px; color: white; font-size: clamp(0.75rem, 0.8vw, 1rem); font-weight: 500; cursor: pointer; letter-spacing: 0.05em;">
+                    +100 Knowledge
+                </button>
+                <button id="debugHerbs" style="padding: 6px 12px; background: #e53e3e; border: 1px solid #e53e3e; border-radius: 8px; color: white; font-size: clamp(0.75rem, 0.8vw, 1rem); font-weight: 500; cursor: pointer; letter-spacing: 0.05em;">
+                    +100 Herbs
+                </button>
+                <button id="debugIron" style="padding: 6px 12px; background: #e53e3e; border: 1px solid #e53e3e; border-radius: 8px; color: white; font-size: clamp(0.75rem, 0.8vw, 1rem); font-weight: 500; cursor: pointer; letter-spacing: 0.05em;">
+                    +100 Iron
+                </button>
+                <button id="debugPeasants" style="padding: 6px 12px; background: #e53e3e; border: 1px solid #e53e3e; border-radius: 8px; color: white; font-size: clamp(0.75rem, 0.8vw, 1rem); font-weight: 500; cursor: pointer; letter-spacing: 0.05em;">
+                    +30 Peasants
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // Handle resource actions
+        function handleResourceAction(buttonText) {
+            console.log('Resource action:', buttonText);
+            
+            // Map button text to resource names
+            const resourceMap = {
+                'Gather': 'food',
+                'Chop': 'wood', 
+                'Mine': 'metal',
+                'Study': 'science',
+                'Collect': 'herbs',
+                'Smelt': 'iron'
+            };
+            
+            const resourceName = resourceMap[buttonText];
+            if (resourceName && typeof window.setGather === 'function') {
+                window.setGather(resourceName);
+                console.log('Set gathering to:', resourceName);
+            } else {
+                console.log('Resource mapping failed for:', buttonText);
+                alert(`${buttonText} action triggered!`);
+            }
+        }
+        
+        // Handle building actions
+        function handleBuildingAction(buildingName) {
+            console.log('Building action:', buildingName);
+            if (typeof window.buyBuilding === 'function') {
+                window.buyBuilding(buildingName);
+            } else {
+                alert(`Build ${buildingName}!`);
+            }
+        }
+        
+        // Handle job actions
+        function handleJobAction(jobName, action) {
+            console.log('Job action:', jobName, action);
+            if (action === 'assign') {
+                if (typeof window.assignJob === 'function') {
+                    window.assignJob(jobName);
+                } else {
+                    alert(`Assign ${jobName}!`);
+                }
+            } else if (action === 'remove') {
+                if (typeof window.removeJob === 'function') {
+                    window.removeJob(jobName);
+                } else {
+                    alert(`Remove ${jobName}!`);
+                }
+            }
+        }
+        
+        // Handle save actions
+        function handleSave() {
+            console.log('Save action');
+            if (typeof window.save === 'function') {
+                window.save();
+                alert('Game saved!');
+            } else {
+                alert('Save function not available');
+            }
+        }
+        
+        function handleExport() {
+            console.log('Export action');
+            if (typeof window.save === 'function') {
+                const saveData = window.save(true); // Export mode
+                if (saveData) {
+                    // Copy to clipboard
+                    navigator.clipboard.writeText(saveData).then(() => {
+                        alert('Save data copied to clipboard!');
+                    }).catch(() => {
+                        // Fallback: show in prompt
+                        prompt('Copy this save data:', saveData);
+                    });
+                }
+            } else {
+                alert('Export function not available');
+            }
+        }
+        
+        function handleImport() {
+            console.log('Import action');
+            const saveData = prompt('Paste your save data here:');
+            if (saveData && typeof window.load === 'function') {
+                try {
+                    window.load(saveData);
+                    alert('Game loaded successfully!');
+                    location.reload(); // Refresh to show updated state
+                } catch (error) {
+                    alert('Error loading save data: ' + error.message);
+                }
+            } else if (saveData) {
+                alert('Load function not available');
+            }
+        }
+        
+        function handleSettings() {
+            console.log('Settings action');
+            alert('Settings panel would open here');
+        }
+        
+        // Update the button onclick handlers
+        function updateButtonHandlers() {
+            // Update resource buttons
+            const resourceButtons = document.querySelectorAll('.resource-button');
+            resourceButtons.forEach(button => {
+                const resourceType = button.textContent.trim();
+                button.onclick = () => handleResourceAction(resourceType);
+            });
+            
+            // Update building buttons
+            const buildingButtons = document.querySelectorAll('.building-button:not(.job)');
+            buildingButtons.forEach(button => {
+                const buildingItem = button.closest('.building-item');
+                const buildingName = buildingItem.getAttribute('data-building');
+                button.onclick = () => handleBuildingAction(buildingName);
+            });
+            
+            // Update job buttons
+            const jobButtons = document.querySelectorAll('.building-button.job');
+            jobButtons.forEach(button => {
+                const jobItem = button.closest('.building-item');
+                const jobName = jobItem.getAttribute('data-job');
+                const action = button.getAttribute('data-action');
+                button.onclick = () => handleJobAction(jobName, action);
+            });
+            
+            // Update footer buttons
+            const footerButtons = document.querySelectorAll('.footer button');
+            footerButtons.forEach(button => {
+                const buttonText = button.textContent.trim();
+                switch(buttonText) {
+                    case 'Save':
+                        button.onclick = handleSave;
+                        break;
+                    case 'Export':
+                        button.onclick = handleExport;
+                        break;
+                    case 'Import':
+                        button.onclick = handleImport;
+                        break;
+                    case 'Settings':
+                        button.onclick = handleSettings;
+                        break;
+                    case '+100 Food':
+                        button.onclick = () => debugAddResource('food', 100);
+                        break;
+                    case '+100 Wood':
+                        button.onclick = () => debugAddResource('wood', 100);
+                        break;
+                    case '+100 Stone':
+                        button.onclick = () => debugAddResource('stone', 100);
+                        break;
+                    case '+100 Knowledge':
+                        button.onclick = () => debugAddResource('knowledge', 100);
+                        break;
+                    case '+100 Herbs':
+                        button.onclick = () => debugAddResource('herbs', 100);
+                        break;
+                    case '+100 Iron':
+                        button.onclick = () => debugAddResource('iron', 100);
+                        break;
+                    case '+30 Peasants':
+                        button.onclick = () => debugAddResource('peasants', 30);
+                        break;
+                }
+            });
+        }
+        
+        // Initialize the game
+        window.addEventListener('load', () => {
+            // Initialize the village game first
+            if (typeof initVillageGame === 'function') {
+                initVillageGame();
+                console.log('✅ Village game initialized');
+            } else {
+                console.log('❌ Village game initialization function not found');
+            }
+            
+            // Initialize the main game if available
+            if (typeof initGame === 'function') {
+                initGame();
+                console.log('✅ Main game initialized with 4-quadrant layout');
+            } else {
+                console.log('❌ Main game initialization function not found');
+            }
+            
+            // Update button handlers after game loads
+            setTimeout(updateButtonHandlers, 100);
+            
+            // Initialize work time slider
+            const workTimeSlider = document.getElementById('workTimeSlider');
+            if (workTimeSlider) {
+                workTimeSlider.addEventListener('input', function() {
+                    const value = this.value;
+                    const workTimeValue = document.getElementById('workTimeValue');
+                    if (workTimeValue) {
+                        workTimeValue.textContent = value;
+                    }
+                    if (typeof window.updateWorkTime === 'function') {
+                        window.updateWorkTime(value);
+                    }
+                });
+            }
+            
+            // Initialize log filter toggles
+            const logTabs = document.querySelectorAll('.log-toggle');
+            logTabs.forEach(tab => {
+                tab.addEventListener('click', function() {
+                    const filter = this.getAttribute('data-filter');
+                    
+                    if (filter === 'all') {
+                        // Toggle all filters
+                        const allActive = this.classList.contains('active');
+                        logTabs.forEach(t => {
+                            if (t.getAttribute('data-filter') !== 'all') {
+                                t.classList.toggle('active', !allActive);
+                            }
+                        });
+                        this.classList.toggle('active');
+                    } else {
+                        // Toggle individual filter
+                        this.classList.toggle('active');
+                        
+                        // Update "All" button state
+                        const allButton = document.querySelector('.log-toggle[data-filter="all"]');
+                        const activeFilters = document.querySelectorAll('.log-toggle.active:not([data-filter="all"])');
+                        allButton.classList.toggle('active', activeFilters.length === 0);
+                    }
+                    
+                    // Apply current filter state
+                    applyLogFilters();
+                });
+            });
+            
+            // Initialize building filter tabs
+            const buildingTabs = document.querySelectorAll('.building-tab');
+            buildingTabs.forEach(tab => {
+                tab.addEventListener('click', function() {
+                    // Remove active class from all tabs
+                    buildingTabs.forEach(t => t.classList.remove('active'));
+                    // Add active class to clicked tab
+                    this.classList.add('active');
+                    
+                    // Filter building items
+                    const filter = this.getAttribute('data-filter');
+                    filterBuildingItems(filter);
+                });
+            });
+            
+            // Initialize expedition buttons
+            const expeditionButtons = document.querySelectorAll('.expedition-button');
+            expeditionButtons.forEach(button => {
+                button.addEventListener('click', function() {
+                    const action = this.getAttribute('data-action');
+                    if (action === 'assign-explorer') {
+                        if (typeof window.assignExplorerToExpedition === 'function') {
+                            window.assignExplorerToExpedition();
+                        }
+                    } else if (action === 'remove-explorer') {
+                        if (typeof window.removeExplorerFromExpedition === 'function') {
+                            window.removeExplorerFromExpedition();
+                        }
+                    }
+                });
+            });
+            
+            // Initialize launch expedition button
+            const launchExpeditionButton = document.getElementById('launchExpeditionButton');
+            if (launchExpeditionButton) {
+                launchExpeditionButton.addEventListener('click', function() {
+                    if (typeof window.launchExpedition === 'function') {
+                        window.launchExpedition();
+                    }
+                });
+            }
+            
+            // Initialize the UI with actual game data
+            setTimeout(initializeUI, 200);
+        });
+        
+        // Initialize UI with actual game data
+        function initializeUI() {
+            console.log('Initializing UI with game data...');
+            
+            // Update resource displays
+            updateResourceDisplays();
+            
+            // Update building displays
+            updateBuildingDisplaysHTML();
+            
+            // Update job displays
+            updateJobDisplays();
+            
+            // Update people panel
+            updatePeoplePanel();
+            
+            // Update log with initial story
+            addInitialStory();
+        }
+        
+        // Update resource displays with actual game data
+        function updateResourceDisplays() {
+            if (typeof villageGame === 'undefined') return;
+            
+            // Update each resource card
+            const resources = ['food', 'wood', 'metal', 'science', 'herbs', 'iron'];
+            resources.forEach(resource => {
+                const resourceData = villageGame.resources[resource];
+                if (resourceData) {
+                    // Update owned amount
+                    const ownedElement = document.querySelector(`[data-resource="${resource}"] .resource-value`);
+                    if (ownedElement) {
+                        ownedElement.textContent = Math.floor(resourceData.owned);
+                    }
+                    
+                    // Update max amount
+                    if (resourceData.max > 0) {
+                        const maxElement = document.querySelector(`[data-resource="${resource}"] .resource-max`);
+                        if (maxElement) {
+                            maxElement.textContent = `/${resourceData.max}`;
+                        }
+                        
+                    }
+                }
+            });
+        }
+        
+        // Update building displays with actual game data
+        function updateBuildingDisplaysHTML() {
+            if (typeof villageGame === 'undefined') return;
+            
+            // Update Campfire
+            const campfireOwned = document.querySelector('[data-building="Campfire"] .building-owned');
+            if (campfireOwned) {
+                campfireOwned.textContent = `Owned: ${villageGame.buildings.Campfire.owned}`;
+            }
+            
+            const campfireCost = document.querySelector('[data-building="Campfire"] .building-cost');
+            if (campfireCost) {
+                campfireCost.textContent = `Cost: ${villageGame.buildings.Campfire.cost.wood} Wood`;
+            }
+            
+            // Update Wooden Hut
+            const woodenHutOwned = document.querySelector('[data-building="WoodenHut"] .building-owned');
+            if (woodenHutOwned) {
+                woodenHutOwned.textContent = `Owned: ${villageGame.buildings.WoodenHut.owned}`;
+            }
+            
+            const woodenHutCost = document.querySelector('[data-building="WoodenHut"] .building-cost');
+            if (woodenHutCost) {
+                woodenHutCost.textContent = `Cost: ${villageGame.buildings.WoodenHut.cost.wood} Wood`;
+            }
+            
+            // Hide Wooden Hut if not unlocked
+            const woodenHutItem = document.querySelector('[data-building="WoodenHut"]');
+            if (woodenHutItem) {
+                woodenHutItem.style.display = villageGame.buildings.WoodenHut.unlocked ? 'block' : 'none';
+            }
+            
+            // Update Granary
+            const granaryOwned = document.querySelector('[data-building="Granary"] .building-owned');
+            if (granaryOwned) {
+                granaryOwned.textContent = `Owned: ${villageGame.buildings.Granary.owned}`;
+            }
+            
+            const granaryCost = document.querySelector('[data-building="Granary"] .building-cost');
+            if (granaryCost) {
+                const woodCost = villageGame.buildings.Granary.cost.wood;
+                const foodCost = villageGame.buildings.Granary.cost.food;
+                granaryCost.textContent = `Cost: ${woodCost} Wood, ${foodCost} Food`;
+            }
+            
+            // Hide Granary if not unlocked
+            const granaryItem = document.querySelector('[data-building="Granary"]');
+            if (granaryItem) {
+                granaryItem.style.display = villageGame.buildings.Granary.unlocked ? 'block' : 'none';
+            }
+            
+            // Update Lumberyard
+            const lumberyardOwned = document.querySelector('[data-building="Lumberyard"] .building-owned');
+            if (lumberyardOwned) {
+                lumberyardOwned.textContent = `Owned: ${villageGame.buildings.Lumberyard.owned}`;
+            }
+            
+            const lumberyardCost = document.querySelector('[data-building="Lumberyard"] .building-cost');
+            if (lumberyardCost) {
+                lumberyardCost.textContent = `Cost: ${villageGame.buildings.Lumberyard.cost.wood} Wood`;
+            }
+            
+            // Hide Lumberyard if not unlocked
+            const lumberyardItem = document.querySelector('[data-building="Lumberyard"]');
+            if (lumberyardItem) {
+                lumberyardItem.style.display = villageGame.buildings.Lumberyard.unlocked ? 'block' : 'none';
+            }
+        }
+        
+        // Update job displays with actual game data
+        function updateJobDisplays() {
+            if (typeof villageGame === 'undefined') return;
+            
+            // Update Farmer
+            const farmerOwned = document.querySelector('[data-job="Farmer"] .building-owned');
+            if (farmerOwned) {
+                farmerOwned.textContent = `Assigned: ${villageGame.jobs.Farmer.owned}`;
+            }
+            
+            // Update Woodcutter
+            const woodcutterOwned = document.querySelector('[data-job="Woodcutter"] .building-owned');
+            if (woodcutterOwned) {
+                woodcutterOwned.textContent = `Assigned: ${villageGame.jobs.Woodcutter.owned}`;
+            }
+            
+            // Update Herbalist
+            const herbalistOwned = document.querySelector('[data-job="Herbalist"] .building-owned');
+            if (herbalistOwned) {
+                herbalistOwned.textContent = `Assigned: ${villageGame.jobs.Herbalist.owned}`;
+            }
+        }
+        
+        // Update people panel with actual game data
+        function updatePeoplePanel() {
+            if (typeof villageGame === 'undefined') return;
+            
+            // Update peasant count
+            const peasantCount = document.querySelector('.people-count');
+            if (peasantCount) {
+                peasantCount.textContent = Math.floor(villageGame.resources.peasants.owned);
+            }
+            
+            // Update peasant cap
+            const peasantCap = document.querySelector('.people-cap');
+            if (peasantCap) {
+                peasantCap.textContent = villageGame.resources.peasants.max;
+            }
+            
+            // Update work time
+            const workTimeValue = document.querySelector('.work-time-value');
+            if (workTimeValue) {
+                workTimeValue.textContent = villageGame.global.workTimePercentage;
+            }
+        }
+        
+        // Apply log filters based on active toggles
+        function applyLogFilters() {
+            const logMessages = document.querySelectorAll('.log-message');
+            const activeFilters = document.querySelectorAll('.log-toggle.active:not([data-filter="all"])');
+            const activeFilterTypes = Array.from(activeFilters).map(tab => tab.getAttribute('data-filter'));
+            
+            logMessages.forEach(message => {
+                const messageType = message.getAttribute('data-type');
+                
+                if (activeFilterTypes.length === 0 || activeFilterTypes.includes(messageType)) {
+                    message.style.display = 'block';
+                } else {
+                    message.style.display = 'none';
+                }
+            });
+        }
+        
+        // Legacy function for backward compatibility
+        function filterLogMessages(filter) {
+            // Reset all toggles
+            const logTabs = document.querySelectorAll('.log-toggle');
+            logTabs.forEach(tab => {
+                if (filter === 'all') {
+                    tab.classList.add('active');
+                } else {
+                    tab.classList.toggle('active', tab.getAttribute('data-filter') === filter);
+                }
+            });
+            
+            applyLogFilters();
+        }
+        
+        // Filter building items based on selected tab
+        function filterBuildingItems(filter) {
+            const buildingItems = document.querySelectorAll('.building-item');
+            buildingItems.forEach(item => {
+                const itemType = item.getAttribute('data-type');
+                
+                if (filter === 'all') {
+                    // Show all items that are unlocked/visible
+                    if (itemType === 'building') {
+                        // For buildings, check if they're unlocked
+                        const buildingName = item.getAttribute('data-building');
+                        if (buildingName && typeof villageGame !== 'undefined') {
+                            const building = villageGame.buildings[buildingName];
+                            item.style.display = building && building.unlocked === true ? 'block' : 'none';
+                        } else {
+                            item.style.display = 'block';
+                        }
+                    } else if (itemType === 'job') {
+                        // For jobs, check if they're unlocked
+                        const jobName = item.getAttribute('data-job');
+                        if (jobName && typeof villageGame !== 'undefined') {
+                            const job = villageGame.jobs[jobName];
+                            item.style.display = job && job.unlocked ? 'block' : 'none';
+                        } else {
+                            item.style.display = 'none';
+                        }
+                    }
+                } else if (filter === 'buildings') {
+                    // Show only buildings
+                    if (itemType === 'building') {
+                        const buildingName = item.getAttribute('data-building');
+                        if (buildingName && typeof villageGame !== 'undefined') {
+                            const building = villageGame.buildings[buildingName];
+                            item.style.display = building && building.unlocked === true ? 'block' : 'none';
+                        } else {
+                            item.style.display = 'block';
+                        }
+                    } else {
+                        item.style.display = 'none';
+                    }
+                } else if (filter === 'jobs') {
+                    // Show only jobs
+                    if (itemType === 'job') {
+                        const jobName = item.getAttribute('data-job');
+                        if (jobName && typeof villageGame !== 'undefined') {
+                            const job = villageGame.jobs[jobName];
+                            item.style.display = job && job.unlocked ? 'block' : 'none';
+                        } else {
+                            item.style.display = 'none';
+                        }
+                    } else {
+                        item.style.display = 'none';
+                    }
+                }
+            });
+        }
+        
+        // Make filterBuildingItems available globally
+        window.filterBuildingItems = filterBuildingItems;
+        
+        // Add initial story to log
+        function addInitialStory() {
+            const logContainer = document.querySelector('.log-content');
+            if (logContainer) {
+                logContainer.innerHTML = `
+                    <div class="log-message StoryMessage" data-type="story">
+                        <span style="margin-right: 5px;">📖</span>
+                        You find yourself in a dark forest clearing, surrounded by towering trees that block out most of the sunlight. The air is thick with mystery and the sounds of unseen creatures. You know you must build a settlement here, but first you need to gather resources and find a way to survive the coming night.
+                    </div>
+                `;
+            }
+        }
+    </script>
+</body>
+</html>
