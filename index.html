@@ -1067,6 +1067,242 @@
             color: #e2e8f0;
         }
 
+        /* Prestige log message style */
+        .log-message.PrestigeMessage {
+            background: rgba(214, 158, 46, 0.15);
+            border-left: 3px solid #d69e2e;
+            color: #e2e8f0;
+        }
+
+        /* Prestige Panel Styles */
+        .prestige-panel {
+            background: linear-gradient(145deg, #1a1a2e, #0f0f1a);
+            border: 2px solid #d69e2e;
+            border-radius: 12px;
+            padding: 16px;
+            margin-top: 8px;
+            display: none;
+            box-shadow: 0 0 20px rgba(214, 158, 46, 0.2);
+        }
+
+        .prestige-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 16px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid #d69e2e;
+        }
+
+        .prestige-title {
+            font-size: clamp(1.1rem, 1.3vw, 1.4rem);
+            font-weight: 700;
+            color: #d69e2e;
+            text-shadow: 0 0 10px rgba(214, 158, 46, 0.5);
+        }
+
+        .prestige-stats {
+            display: flex;
+            gap: 16px;
+            font-size: clamp(0.7rem, 0.75vw, 0.875rem);
+            color: #e2e8f0;
+        }
+
+        .prestige-stat {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 2px;
+        }
+
+        .prestige-stat-value {
+            color: #d69e2e;
+            font-weight: 600;
+            font-size: clamp(0.9rem, 1vw, 1.1rem);
+        }
+
+        .prestige-stat-label {
+            color: #a0aec0;
+            font-size: clamp(0.6rem, 0.65vw, 0.75rem);
+        }
+
+        .prestige-preview {
+            background: linear-gradient(145deg, #1e2433, #141821);
+            border: 1px solid #2d3748;
+            border-radius: 8px;
+            padding: 12px;
+            margin-bottom: 16px;
+            text-align: center;
+        }
+
+        .prestige-preview-title {
+            font-size: clamp(0.8rem, 0.85vw, 0.95rem);
+            color: #a0aec0;
+            margin-bottom: 8px;
+        }
+
+        .prestige-preview-points {
+            font-size: clamp(1.5rem, 1.8vw, 2rem);
+            font-weight: 700;
+            color: #d69e2e;
+            text-shadow: 0 0 15px rgba(214, 158, 46, 0.5);
+        }
+
+        .prestige-preview-breakdown {
+            font-size: clamp(0.65rem, 0.7vw, 0.8rem);
+            color: #718096;
+            margin-top: 8px;
+        }
+
+        .prestige-button-container {
+            text-align: center;
+            margin-bottom: 16px;
+        }
+
+        .prestige-button {
+            padding: 12px 32px;
+            background: linear-gradient(145deg, #d69e2e, #b7791f);
+            border: 2px solid #d69e2e;
+            border-radius: 8px;
+            color: #1a1a2e;
+            font-size: clamp(1rem, 1.1vw, 1.2rem);
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 200ms ease;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+        }
+
+        .prestige-button:hover:not(:disabled) {
+            background: linear-gradient(145deg, #ecc94b, #d69e2e);
+            transform: translateY(-2px);
+            box-shadow: 0 0 20px rgba(214, 158, 46, 0.5);
+        }
+
+        .prestige-button:disabled {
+            background: #4a5568;
+            border-color: #4a5568;
+            color: #718096;
+            cursor: not-allowed;
+        }
+
+        .prestige-warning {
+            font-size: clamp(0.65rem, 0.7vw, 0.8rem);
+            color: #f56565;
+            margin-top: 8px;
+        }
+
+        .prestige-upgrades-title {
+            font-size: clamp(0.9rem, 1vw, 1.1rem);
+            font-weight: 600;
+            color: #e2e8f0;
+            margin-bottom: 12px;
+        }
+
+        .prestige-upgrades-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+            gap: 8px;
+            max-height: 250px;
+            overflow-y: auto;
+        }
+
+        .prestige-upgrade-card {
+            background: linear-gradient(145deg, #1e2433, #141821);
+            border: 1px solid #2d3748;
+            border-radius: 8px;
+            padding: 10px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .prestige-upgrade-card:hover:not(.maxed) {
+            border-color: #d69e2e;
+            transform: translateY(-2px);
+        }
+
+        .prestige-upgrade-card.affordable:not(.maxed) {
+            border-color: #38a169;
+            box-shadow: 0 0 8px rgba(56, 161, 105, 0.3);
+        }
+
+        .prestige-upgrade-card.maxed {
+            background: linear-gradient(145deg, #1a3a2a, #0f2318);
+            border-color: #38a169;
+            cursor: default;
+        }
+
+        .prestige-upgrade-name {
+            font-size: clamp(0.8rem, 0.85vw, 0.95rem);
+            font-weight: 600;
+            color: #e2e8f0;
+            margin-bottom: 4px;
+        }
+
+        .prestige-upgrade-level {
+            font-size: clamp(0.65rem, 0.7vw, 0.8rem);
+            color: #d69e2e;
+            margin-bottom: 4px;
+        }
+
+        .prestige-upgrade-description {
+            font-size: clamp(0.6rem, 0.65vw, 0.75rem);
+            color: #a0aec0;
+            margin-bottom: 4px;
+        }
+
+        .prestige-upgrade-effect {
+            font-size: clamp(0.6rem, 0.65vw, 0.75rem);
+            color: #68d391;
+            font-style: italic;
+            margin-bottom: 4px;
+        }
+
+        .prestige-upgrade-cost {
+            font-size: clamp(0.6rem, 0.65vw, 0.75rem);
+            color: #fbbf24;
+        }
+
+        .prestige-upgrade-card.maxed .prestige-upgrade-name::after {
+            content: " ✓";
+            color: #38a169;
+        }
+
+        .prestige-bonuses {
+            margin-top: 16px;
+            padding-top: 12px;
+            border-top: 1px solid #2d3748;
+        }
+
+        .prestige-bonuses-title {
+            font-size: clamp(0.8rem, 0.85vw, 0.95rem);
+            font-weight: 600;
+            color: #e2e8f0;
+            margin-bottom: 8px;
+        }
+
+        .prestige-bonuses-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+            gap: 6px;
+        }
+
+        .prestige-bonus-item {
+            background: #16213e;
+            border-radius: 6px;
+            padding: 6px 8px;
+            font-size: clamp(0.6rem, 0.65vw, 0.75rem);
+        }
+
+        .prestige-bonus-label {
+            color: #a0aec0;
+        }
+
+        .prestige-bonus-value {
+            color: #68d391;
+            font-weight: 600;
+        }
+
 
         /* Responsive adjustments */
         @media (max-width: 768px) {
@@ -1589,6 +1825,56 @@
                     <!-- Upgrade cards will be dynamically generated -->
                 </div>
             </div>
+
+            <!-- Prestige Panel -->
+            <div class="prestige-panel" id="prestigePanel">
+                <div class="prestige-header">
+                    <div class="prestige-title">👑 Legacy of the Dragonslayer</div>
+                    <div class="prestige-stats">
+                        <div class="prestige-stat">
+                            <span class="prestige-stat-value" id="prestigeLegacyPoints">0</span>
+                            <span class="prestige-stat-label">Legacy Points</span>
+                        </div>
+                        <div class="prestige-stat">
+                            <span class="prestige-stat-value" id="prestigeTimesReset">0</span>
+                            <span class="prestige-stat-label">Times Prestiged</span>
+                        </div>
+                        <div class="prestige-stat">
+                            <span class="prestige-stat-value" id="prestigeDragonsSlain">0</span>
+                            <span class="prestige-stat-label">Dragons Slain</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="prestige-preview">
+                    <div class="prestige-preview-title">Prestige Now to Earn:</div>
+                    <div class="prestige-preview-points" id="prestigePreviewPoints">0</div>
+                    <div class="prestige-preview-breakdown" id="prestigePreviewBreakdown">
+                        (Defeat the Dragon to unlock prestige)
+                    </div>
+                </div>
+
+                <div class="prestige-button-container">
+                    <button class="prestige-button" id="prestigeButton" disabled>
+                        Prestige
+                    </button>
+                    <div class="prestige-warning">
+                        Warning: This will reset all progress except Legacy upgrades!
+                    </div>
+                </div>
+
+                <div class="prestige-upgrades-title">Legacy Upgrades</div>
+                <div class="prestige-upgrades-grid" id="prestigeUpgradesGrid">
+                    <!-- Prestige upgrade cards will be dynamically generated -->
+                </div>
+
+                <div class="prestige-bonuses" id="prestigeBonuses">
+                    <div class="prestige-bonuses-title">Current Bonuses</div>
+                    <div class="prestige-bonuses-grid" id="prestigeBonusesGrid">
+                        <!-- Current bonuses will be shown here -->
+                    </div>
+                </div>
+            </div>
         </div>
 
         <!-- Footer -->
@@ -1605,29 +1891,6 @@
                 </button>
                 <button style="padding: 6px 12px; background: #16213e; border: 1px solid #2d3748; border-radius: 8px; color: #e2e8f0; font-size: clamp(0.75rem, 0.8vw, 1rem); font-weight: 500; cursor: pointer; letter-spacing: 0.05em;">
                     Settings
-                </button>
-                
-                <!-- Debug Buttons (for testing only) -->
-                <button id="debugFood" style="padding: 6px 12px; background: #e53e3e; border: 1px solid #e53e3e; border-radius: 8px; color: white; font-size: clamp(0.75rem, 0.8vw, 1rem); font-weight: 500; cursor: pointer; letter-spacing: 0.05em;">
-                    +100 Food
-                </button>
-                <button id="debugWood" style="padding: 6px 12px; background: #e53e3e; border: 1px solid #e53e3e; border-radius: 8px; color: white; font-size: clamp(0.75rem, 0.8vw, 1rem); font-weight: 500; cursor: pointer; letter-spacing: 0.05em;">
-                    +100 Wood
-                </button>
-                <button id="debugStone" style="padding: 6px 12px; background: #e53e3e; border: 1px solid #e53e3e; border-radius: 8px; color: white; font-size: clamp(0.75rem, 0.8vw, 1rem); font-weight: 500; cursor: pointer; letter-spacing: 0.05em;">
-                    +100 Stone
-                </button>
-                <button id="debugKnowledge" style="padding: 6px 12px; background: #e53e3e; border: 1px solid #e53e3e; border-radius: 8px; color: white; font-size: clamp(0.75rem, 0.8vw, 1rem); font-weight: 500; cursor: pointer; letter-spacing: 0.05em;">
-                    +100 Knowledge
-                </button>
-                <button id="debugHerbs" style="padding: 6px 12px; background: #e53e3e; border: 1px solid #e53e3e; border-radius: 8px; color: white; font-size: clamp(0.75rem, 0.8vw, 1rem); font-weight: 500; cursor: pointer; letter-spacing: 0.05em;">
-                    +100 Herbs
-                </button>
-                <button id="debugIron" style="padding: 6px 12px; background: #e53e3e; border: 1px solid #e53e3e; border-radius: 8px; color: white; font-size: clamp(0.75rem, 0.8vw, 1rem); font-weight: 500; cursor: pointer; letter-spacing: 0.05em;">
-                    +100 Iron
-                </button>
-                <button id="debugPeasants" style="padding: 6px 12px; background: #e53e3e; border: 1px solid #e53e3e; border-radius: 8px; color: white; font-size: clamp(0.75rem, 0.8vw, 1rem); font-weight: 500; cursor: pointer; letter-spacing: 0.05em;">
-                    +30 Peasants
                 </button>
             </div>
         </div>
@@ -1778,27 +2041,6 @@
                         break;
                     case 'Settings':
                         button.onclick = handleSettings;
-                        break;
-                    case '+100 Food':
-                        button.onclick = () => debugAddResource('food', 100);
-                        break;
-                    case '+100 Wood':
-                        button.onclick = () => debugAddResource('wood', 100);
-                        break;
-                    case '+100 Stone':
-                        button.onclick = () => debugAddResource('stone', 100);
-                        break;
-                    case '+100 Knowledge':
-                        button.onclick = () => debugAddResource('knowledge', 100);
-                        break;
-                    case '+100 Herbs':
-                        button.onclick = () => debugAddResource('herbs', 100);
-                        break;
-                    case '+100 Iron':
-                        button.onclick = () => debugAddResource('iron', 100);
-                        break;
-                    case '+30 Peasants':
-                        button.onclick = () => debugAddResource('peasants', 30);
                         break;
                 }
             });

@@ -15,13 +15,14 @@ function handlePeasantAttraction() {
         return;
     }
 
-    // Calculate immigration rate with upgrade bonus
+    // Calculate immigration rate with upgrade bonus and prestige bonus
     const upgradeBonus = villageGame.global.upgradeBonus || {};
     const immigrationBonus = 1 + (upgradeBonus.immigrationRate || 0);
+    const prestigeImmigrationBonus = 1 + (typeof getPrestigeImmigrationBonus === 'function' ? getPrestigeImmigrationBonus() : 0);
     const baseRate = 0.1 * villageGame.buildings.Campfire.owned; // 0.1 per second per campfire
 
     // Add to campfire accumulator with bonus applied
-    villageGame.global.campfireAccumulator += (baseRate * immigrationBonus) / villageGame.settings.speed;
+    villageGame.global.campfireAccumulator += (baseRate * immigrationBonus * prestigeImmigrationBonus) / villageGame.settings.speed;
     
     // Check if we've accumulated enough for a whole peasant
     if (villageGame.global.campfireAccumulator >= 1.0) {
@@ -85,6 +86,7 @@ function handleJobProduction() {
     const workshopBonus = 1 + (villageGame.global.workshopBonus || 0); // Workshop production bonus
     const upgradeBonus = villageGame.global.upgradeBonus || {}; // Upgrade bonuses
     const allProductionBonus = 1 + (upgradeBonus.allProduction || 0); // All production upgrade bonus
+    const prestigeProductionBonus = 1 + (typeof getPrestigeProductionBonus === 'function' ? getPrestigeProductionBonus() : 0); // Prestige production bonus
 
     for (let jobName in villageGame.jobs) {
         const job = villageGame.jobs[jobName];
@@ -122,8 +124,8 @@ function handleJobProduction() {
                     break;
             }
 
-            // Production is affected by work time, morale, workshop bonus, and upgrade bonuses
-            const production = (job.owned * job.effectValue * workEfficiency * moraleEfficiency * workshopBonus * allProductionBonus * jobUpgradeBonus) / villageGame.settings.speed;
+            // Production is affected by work time, morale, workshop bonus, upgrade bonuses, and prestige bonus
+            const production = (job.owned * job.effectValue * workEfficiency * moraleEfficiency * workshopBonus * allProductionBonus * jobUpgradeBonus * prestigeProductionBonus) / villageGame.settings.speed;
             villageGame.resources[job.resource].owned += production;
 
             // Check max limits
@@ -532,7 +534,8 @@ function updatePeoplePanelDisplays() {
                 // Note: Food check happens when actually adding peasant, not in rate calculation
                 const upgradeBonus = villageGame.global.upgradeBonus || {};
                 const immigrationBonus = 1 + (upgradeBonus.immigrationRate || 0);
-                immigrationRate = 0.1 * villageGame.buildings.Campfire.owned * immigrationBonus;
+                const prestigeImmigrationBonus = 1 + (typeof getPrestigeImmigrationBonus === 'function' ? getPrestigeImmigrationBonus() : 0);
+                immigrationRate = 0.1 * villageGame.buildings.Campfire.owned * immigrationBonus * prestigeImmigrationBonus;
             }
         }
 

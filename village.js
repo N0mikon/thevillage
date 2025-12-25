@@ -284,12 +284,13 @@ function handleExploration() {
 
     const expeditionExplorers = villageGame.global.expeditionPartySize;
 
-    // Calculate exploration rate (0.1 tile per second per expedition explorer) with upgrade bonuses
+    // Calculate exploration rate (0.1 tile per second per expedition explorer) with upgrade bonuses and prestige bonus
     const workEfficiency = villageGame.global.workTimePercentage / 100;
     const moraleEfficiency = villageGame.global.morale / 100;
     const upgradeBonus = villageGame.global.upgradeBonus || {};
     const explorationSpeedBonus = 1 + (upgradeBonus.explorationSpeed || 0);
-    const explorationRate = (expeditionExplorers * 0.1 * workEfficiency * moraleEfficiency * explorationSpeedBonus) / villageGame.settings.speed;
+    const prestigeExplorationBonus = 1 + getPrestigeExplorationBonus();
+    const explorationRate = (expeditionExplorers * 0.1 * workEfficiency * moraleEfficiency * explorationSpeedBonus * prestigeExplorationBonus) / villageGame.settings.speed;
 
     // Add to exploration accumulator
     if (!villageGame.global.explorationAccumulator) {
@@ -368,12 +369,13 @@ function handleCombat(tile) {
         return;
     }
 
-    // Calculate combat strength with upgrade bonuses
+    // Calculate combat strength with upgrade bonuses and prestige bonus
     const soldierCount = villageGame.jobs.Soldier ? villageGame.jobs.Soldier.owned : 0;
     const soldierStrength = soldierCount * 10; // 10 combat strength per soldier
     const upgradeBonus = villageGame.global.upgradeBonus || {};
     const combatStrengthBonus = 1 + (upgradeBonus.combatStrength || 0);
-    const combatStrength = Math.floor(soldierStrength * combatStrengthBonus);
+    const prestigeCombatBonus = 1 + getPrestigeCombatBonus();
+    const combatStrength = Math.floor(soldierStrength * combatStrengthBonus * prestigeCombatBonus);
     villageGame.global.combatStrength = combatStrength;
 
     // Combat resolution
@@ -386,6 +388,8 @@ function handleCombat(tile) {
             villageGame.global.bossDefeated = true;
             addMessage(`VICTORY! Your soldiers have slain the Dragon! The village is safe at last!`, "Combat");
             addMessage(`Your ${soldierCount} soldiers (${combatStrength} strength) defeated the Dragon (${tile.strength} strength)!`, "Combat");
+            // Unlock prestige system
+            unlockPrestige();
         } else {
             addMessage(`Victory! Your soldiers defeated the ${tile.name}!`, "Combat");
             addMessage(`Combat: ${soldierCount} soldiers (${combatStrength} strength) vs ${tile.name} (${tile.strength} strength)`, "Combat");
@@ -461,7 +465,8 @@ function updateCombatDisplay() {
         const soldierCount = villageGame.jobs.Soldier ? villageGame.jobs.Soldier.owned : 0;
         const upgradeBonus = villageGame.global.upgradeBonus || {};
         const combatStrengthBonus = 1 + (upgradeBonus.combatStrength || 0);
-        const combatStrength = Math.floor(soldierCount * 10 * combatStrengthBonus);
+        const prestigeCombatBonus = 1 + getPrestigeCombatBonus();
+        const combatStrength = Math.floor(soldierCount * 10 * combatStrengthBonus * prestigeCombatBonus);
         combatStatsElement.innerHTML = `
             <div>Soldiers: ${soldierCount}</div>
             <div>Combat Strength: ${combatStrength}</div>
@@ -524,11 +529,12 @@ function updateMapDisplay() {
 
     mapHTML += '</div>';
 
-    // Combat stats panel with upgrade bonus
+    // Combat stats panel with upgrade bonus and prestige bonus
     const soldierCount = villageGame.jobs.Soldier ? villageGame.jobs.Soldier.owned : 0;
     const upgradeBonus = villageGame.global.upgradeBonus || {};
     const combatStrengthBonus = 1 + (upgradeBonus.combatStrength || 0);
-    const combatStrength = Math.floor(soldierCount * 10 * combatStrengthBonus);
+    const prestigeCombatBonus = 1 + getPrestigeCombatBonus();
+    const combatStrength = Math.floor(soldierCount * 10 * combatStrengthBonus * prestigeCombatBonus);
     mapHTML += `<div class="map-stats">
         <div>Explored: ${map.exploredTiles}/${map.width * map.height} tiles | Monsters Defeated: ${villageGame.global.monstersDefeated || 0}</div>
         <div>Combat Strength: ⚔️${combatStrength} (${soldierCount} soldiers)</div>
@@ -605,13 +611,15 @@ function buyBuilding(buildingName) {
         return false;
     }
 
-    // Calculate building cost reduction from upgrades
+    // Calculate building cost reduction from upgrades and prestige
     const upgradeBonus = villageGame.global.upgradeBonus || {};
-    const costReduction = 1 - (upgradeBonus.buildingCostReduction || 0);
+    const upgradeCostReduction = 1 - (upgradeBonus.buildingCostReduction || 0);
+    const prestigeCostReduction = 1 - getPrestigeCostReduction();
+    const totalCostReduction = upgradeCostReduction * prestigeCostReduction;
 
     // Check if we have enough resources (with cost reduction applied)
     for (let resource in building.cost) {
-        const actualCost = Math.ceil(building.cost[resource] * costReduction);
+        const actualCost = Math.ceil(building.cost[resource] * totalCostReduction);
         if (villageGame.resources[resource].owned < actualCost) {
             addMessage(`Not enough ${resource}! Need ${actualCost}, have ${Math.floor(villageGame.resources[resource].owned)}.`, "Loot");
             return false;
@@ -620,7 +628,7 @@ function buyBuilding(buildingName) {
 
     // Deduct resources (with cost reduction applied)
     for (let resource in building.cost) {
-        const actualCost = Math.ceil(building.cost[resource] * costReduction);
+        const actualCost = Math.ceil(building.cost[resource] * totalCostReduction);
         villageGame.resources[resource].owned -= actualCost;
     }
     
@@ -949,16 +957,18 @@ function addMessage(text, type) {
 
 // Update building displays
 function updateBuildingDisplays() {
-    // Calculate building cost reduction from upgrades
+    // Calculate building cost reduction from upgrades and prestige
     const upgradeBonus = villageGame.global.upgradeBonus || {};
-    const costReduction = 1 - (upgradeBonus.buildingCostReduction || 0);
+    const upgradeCostReduction = 1 - (upgradeBonus.buildingCostReduction || 0);
+    const prestigeCostReduction = 1 - getPrestigeCostReduction();
+    const totalCostReduction = upgradeCostReduction * prestigeCostReduction;
 
     // Helper function to format cost string with reduction applied
     function formatCost(cost) {
         const parts = [];
         const resourceNames = { wood: 'Wood', food: 'Food', metal: 'Stone', science: 'Knowledge', gems: 'Gold', herbs: 'Herbs', iron: 'Iron' };
         for (let res in cost) {
-            const actualCost = Math.ceil(cost[res] * costReduction);
+            const actualCost = Math.ceil(cost[res] * totalCostReduction);
             parts.push(`${actualCost} ${resourceNames[res] || res}`);
         }
         return parts.join(', ');
@@ -1133,8 +1143,6 @@ function showWorkTimeSlider() {
     }
 }
 
-// debugAddResource function is now in js/resources.js
-
 // Assign explorer to expedition
 function assignExplorerToExpedition() {
     if (villageGame.global.expeditionPartySize >= villageGame.global.maxExpeditionPartySize) {
@@ -1238,7 +1246,6 @@ window.buyBuilding = buyBuilding;
 window.showResource = showResource;
 window.showRateDisplay = showRateDisplay;
 window.showWorkTimeSlider = showWorkTimeSlider;
-window.debugAddResource = debugAddResource;
 window.assignExplorerToExpedition = assignExplorerToExpedition;
 window.removeExplorerFromExpedition = removeExplorerFromExpedition;
 window.launchExpedition = launchExpedition;
@@ -1661,14 +1668,15 @@ function filterUpgrades(category) {
 // Save game state
 function save(exportMode) {
     const saveData = {
-        version: 2,
+        version: 3,
         timestamp: Date.now(),
         resources: villageGame.resources,
         buildings: villageGame.buildings,
         jobs: villageGame.jobs,
         global: villageGame.global,
         map: villageGame.map,
-        upgrades: villageGame.upgrades
+        upgrades: villageGame.upgrades,
+        prestige: villageGame.prestige
     };
 
     const saveString = JSON.stringify(saveData);
@@ -1762,6 +1770,34 @@ function load(saveData) {
             }
         }
 
+        // Restore prestige data (version 3+)
+        if (data.prestige) {
+            // Restore scalar values
+            villageGame.prestige.legacyPoints = data.prestige.legacyPoints || 0;
+            villageGame.prestige.totalLegacyPointsEarned = data.prestige.totalLegacyPointsEarned || 0;
+            villageGame.prestige.timesPrestiged = data.prestige.timesPrestiged || 0;
+            villageGame.prestige.dragonsSlain = data.prestige.dragonsSlain || 0;
+            villageGame.prestige.unlocked = data.prestige.unlocked || false;
+
+            // Restore bonuses
+            if (data.prestige.bonuses) {
+                for (let key in data.prestige.bonuses) {
+                    if (villageGame.prestige.bonuses.hasOwnProperty(key)) {
+                        villageGame.prestige.bonuses[key] = data.prestige.bonuses[key];
+                    }
+                }
+            }
+
+            // Restore prestige upgrades (purchased levels)
+            if (data.prestige.upgrades) {
+                for (let key in data.prestige.upgrades) {
+                    if (villageGame.prestige.upgrades[key]) {
+                        villageGame.prestige.upgrades[key].purchased = data.prestige.upgrades[key].purchased || 0;
+                    }
+                }
+            }
+        }
+
         console.log('Game loaded successfully! Save from:', new Date(data.timestamp).toLocaleString());
         return true;
     } catch (e) {
@@ -1818,6 +1854,9 @@ document.addEventListener('DOMContentLoaded', function() {
                 filterUpgrades(category);
             });
         });
+
+        // Initialize prestige button
+        initializePrestigeButton();
     }, 100);
 });
 
@@ -1959,4 +1998,492 @@ function restoreUnlockedUI() {
     }
 
     console.log('UI state restored from save');
+
+    // Restore prestige panel visibility
+    if (villageGame.prestige.unlocked) {
+        const prestigePanel = document.getElementById('prestigePanel');
+        if (prestigePanel) {
+            prestigePanel.style.display = 'block';
+        }
+        updatePrestigeDisplay();
+    }
+}
+
+// =============================================
+// PRESTIGE SYSTEM
+// =============================================
+
+// Unlock prestige system (called when dragon is defeated)
+function unlockPrestige() {
+    if (!villageGame.prestige.unlocked) {
+        villageGame.prestige.unlocked = true;
+        villageGame.prestige.dragonsSlain++;
+
+        const prestigePanel = document.getElementById('prestigePanel');
+        if (prestigePanel) {
+            prestigePanel.style.display = 'block';
+        }
+
+        addMessage("With the dragon defeated, your legend spreads across the land. The spirits of your ancestors whisper of a greater power - the ability to pass on your wisdom to future generations.", "Prestige");
+        addMessage("Prestige System Unlocked", "Unlock");
+
+        updatePrestigeDisplay();
+    } else {
+        // Dragon defeated again
+        villageGame.prestige.dragonsSlain++;
+        addMessage("Another dragon has been slain! Your legend grows even greater.", "Prestige");
+        updatePrestigeDisplay();
+    }
+}
+
+// Calculate legacy points that would be earned from current progress
+function calculateLegacyPoints() {
+    let points = 0;
+    let breakdown = [];
+
+    // Points from population (1 point per 10 peasants)
+    const populationPoints = Math.floor(villageGame.resources.peasants.owned / 10);
+    if (populationPoints > 0) {
+        points += populationPoints;
+        breakdown.push(`Population: ${populationPoints}`);
+    }
+
+    // Points from buildings (1 point per building owned)
+    let buildingPoints = 0;
+    for (let buildingName in villageGame.buildings) {
+        buildingPoints += villageGame.buildings[buildingName].owned || 0;
+    }
+    if (buildingPoints > 0) {
+        points += buildingPoints;
+        breakdown.push(`Buildings: ${buildingPoints}`);
+    }
+
+    // Points from upgrades (2 points per upgrade purchased)
+    let upgradePoints = 0;
+    for (let upgradeName in villageGame.upgrades) {
+        if (villageGame.upgrades[upgradeName].purchased) {
+            upgradePoints += 2;
+        }
+    }
+    if (upgradePoints > 0) {
+        points += upgradePoints;
+        breakdown.push(`Research: ${upgradePoints}`);
+    }
+
+    // Points from monsters defeated (1 point per 5 monsters)
+    const monsterPoints = Math.floor((villageGame.global.monstersDefeated || 0) / 5);
+    if (monsterPoints > 0) {
+        points += monsterPoints;
+        breakdown.push(`Monsters: ${monsterPoints}`);
+    }
+
+    // Bonus for defeating the dragon (10 points)
+    if (villageGame.global.bossDefeated) {
+        points += 10;
+        breakdown.push(`Dragon: 10`);
+    }
+
+    // Points from explored tiles (1 point per 10 tiles)
+    const explorationPoints = Math.floor((villageGame.map.exploredTiles || 0) / 10);
+    if (explorationPoints > 0) {
+        points += explorationPoints;
+        breakdown.push(`Exploration: ${explorationPoints}`);
+    }
+
+    return { points, breakdown };
+}
+
+// Update prestige display
+function updatePrestigeDisplay() {
+    // Update legacy points
+    const legacyPointsElement = document.getElementById('prestigeLegacyPoints');
+    if (legacyPointsElement) {
+        legacyPointsElement.textContent = villageGame.prestige.legacyPoints;
+    }
+
+    // Update times reset
+    const timesResetElement = document.getElementById('prestigeTimesReset');
+    if (timesResetElement) {
+        timesResetElement.textContent = villageGame.prestige.timesPrestiged;
+    }
+
+    // Update dragons slain
+    const dragonsSlainElement = document.getElementById('prestigeDragonsSlain');
+    if (dragonsSlainElement) {
+        dragonsSlainElement.textContent = villageGame.prestige.dragonsSlain;
+    }
+
+    // Update preview points
+    const { points, breakdown } = calculateLegacyPoints();
+    const previewPointsElement = document.getElementById('prestigePreviewPoints');
+    if (previewPointsElement) {
+        previewPointsElement.textContent = points;
+    }
+
+    const previewBreakdownElement = document.getElementById('prestigePreviewBreakdown');
+    if (previewBreakdownElement) {
+        if (breakdown.length > 0) {
+            previewBreakdownElement.textContent = `(${breakdown.join(' + ')})`;
+        } else {
+            previewBreakdownElement.textContent = '(No points earned yet)';
+        }
+    }
+
+    // Enable/disable prestige button
+    const prestigeButton = document.getElementById('prestigeButton');
+    if (prestigeButton) {
+        // Can only prestige if dragon has been defeated this run
+        const canPrestige = villageGame.global.bossDefeated && points > 0;
+        prestigeButton.disabled = !canPrestige;
+    }
+
+    // Update prestige upgrades grid
+    updatePrestigeUpgradesGrid();
+
+    // Update current bonuses display
+    updatePrestigeBonusesDisplay();
+}
+
+// Update prestige upgrades grid
+function updatePrestigeUpgradesGrid() {
+    const grid = document.getElementById('prestigeUpgradesGrid');
+    if (!grid) return;
+
+    grid.innerHTML = '';
+
+    for (let upgradeName in villageGame.prestige.upgrades) {
+        const upgrade = villageGame.prestige.upgrades[upgradeName];
+        const isMaxed = upgrade.purchased >= upgrade.maxLevel;
+        const currentCost = Math.ceil(upgrade.cost * Math.pow(upgrade.costScale, upgrade.purchased));
+        const canAfford = villageGame.prestige.legacyPoints >= currentCost && !isMaxed;
+
+        const card = document.createElement('div');
+        card.className = `prestige-upgrade-card${isMaxed ? ' maxed' : ''}${canAfford ? ' affordable' : ''}`;
+        card.setAttribute('data-upgrade', upgradeName);
+
+        card.innerHTML = `
+            <div class="prestige-upgrade-name">${formatPrestigeUpgradeName(upgradeName)}</div>
+            <div class="prestige-upgrade-level">Level: ${upgrade.purchased}/${upgrade.maxLevel}</div>
+            <div class="prestige-upgrade-description">${upgrade.description}</div>
+            <div class="prestige-upgrade-effect">${upgrade.effect}</div>
+            ${!isMaxed ? `<div class="prestige-upgrade-cost">Cost: ${currentCost} LP</div>` : ''}
+        `;
+
+        if (!isMaxed) {
+            card.onclick = () => purchasePrestigeUpgrade(upgradeName);
+        }
+
+        grid.appendChild(card);
+    }
+}
+
+// Update current bonuses display
+function updatePrestigeBonusesDisplay() {
+    const grid = document.getElementById('prestigeBonusesGrid');
+    if (!grid) return;
+
+    grid.innerHTML = '';
+
+    const bonuses = villageGame.prestige.bonuses;
+    const bonusLabels = {
+        startingResources: 'Starting Resources',
+        productionMultiplier: 'Production',
+        explorationBonus: 'Exploration Speed',
+        combatBonus: 'Combat Strength',
+        populationCapBonus: 'Population Cap',
+        costReduction: 'Cost Reduction',
+        immigrationBonus: 'Immigration Speed'
+    };
+
+    for (let bonusName in bonuses) {
+        const value = bonuses[bonusName];
+        if (value > 0) {
+            const item = document.createElement('div');
+            item.className = 'prestige-bonus-item';
+
+            let displayValue = '';
+            if (bonusName === 'startingResources' || bonusName === 'populationCapBonus') {
+                displayValue = `+${value}`;
+            } else {
+                displayValue = `+${Math.round(value * 100)}%`;
+            }
+
+            item.innerHTML = `
+                <span class="prestige-bonus-label">${bonusLabels[bonusName] || bonusName}:</span>
+                <span class="prestige-bonus-value">${displayValue}</span>
+            `;
+            grid.appendChild(item);
+        }
+    }
+
+    // Show message if no bonuses yet
+    if (grid.children.length === 0) {
+        grid.innerHTML = '<div class="prestige-bonus-item"><span class="prestige-bonus-label">No bonuses yet - purchase Legacy Upgrades!</span></div>';
+    }
+}
+
+// Format prestige upgrade name for display
+function formatPrestigeUpgradeName(name) {
+    return name.replace(/([A-Z])/g, ' $1').trim();
+}
+
+// Purchase a prestige upgrade
+function purchasePrestigeUpgrade(upgradeName) {
+    const upgrade = villageGame.prestige.upgrades[upgradeName];
+    if (!upgrade) return;
+
+    // Check if already maxed
+    if (upgrade.purchased >= upgrade.maxLevel) {
+        addMessage(`${formatPrestigeUpgradeName(upgradeName)} is already at max level!`, "Loot");
+        return;
+    }
+
+    // Calculate cost
+    const cost = Math.ceil(upgrade.cost * Math.pow(upgrade.costScale, upgrade.purchased));
+
+    // Check if we can afford
+    if (villageGame.prestige.legacyPoints < cost) {
+        addMessage(`Not enough Legacy Points! Need ${cost}, have ${villageGame.prestige.legacyPoints}.`, "Loot");
+        return;
+    }
+
+    // Deduct cost
+    villageGame.prestige.legacyPoints -= cost;
+
+    // Increase level
+    upgrade.purchased++;
+
+    // Apply the bonus
+    applyPrestigeUpgradeBonus(upgradeName);
+
+    addMessage(`${formatPrestigeUpgradeName(upgradeName)} upgraded to level ${upgrade.purchased}!`, "Prestige");
+
+    // Update display
+    updatePrestigeDisplay();
+}
+
+// Apply prestige upgrade bonus
+function applyPrestigeUpgradeBonus(upgradeName) {
+    const upgrade = villageGame.prestige.upgrades[upgradeName];
+    const bonuses = villageGame.prestige.bonuses;
+
+    switch (upgradeName) {
+        case 'ResourceHeadstart':
+            bonuses.startingResources = upgrade.purchased * upgrade.effectValue;
+            break;
+        case 'VeteranWorkers':
+            bonuses.productionMultiplier = upgrade.purchased * upgrade.effectValue;
+            break;
+        case 'ExperiencedExplorers':
+            bonuses.explorationBonus = upgrade.purchased * upgrade.effectValue;
+            break;
+        case 'BattleHardened':
+            bonuses.combatBonus = upgrade.purchased * upgrade.effectValue;
+            break;
+        case 'ExpandedSettlement':
+            bonuses.populationCapBonus = upgrade.purchased * upgrade.effectValue;
+            break;
+        case 'EfficientDesigns':
+            bonuses.costReduction = upgrade.purchased * upgrade.effectValue;
+            break;
+        case 'FamousVillage':
+            bonuses.immigrationBonus = upgrade.purchased * upgrade.effectValue;
+            break;
+        case 'DragonslayerLegacy':
+            // Special bonus - already applied at game start
+            break;
+    }
+}
+
+// Perform prestige reset
+function performPrestige() {
+    // Calculate and award legacy points
+    const { points } = calculateLegacyPoints();
+    villageGame.prestige.legacyPoints += points;
+    villageGame.prestige.totalLegacyPointsEarned += points;
+    villageGame.prestige.timesPrestiged++;
+
+    addMessage(`Prestige complete! Earned ${points} Legacy Points.`, "Prestige");
+
+    // Save prestige data before reset
+    const prestigeData = JSON.parse(JSON.stringify(villageGame.prestige));
+
+    // Reset game to initial state
+    resetGameState();
+
+    // Restore prestige data
+    villageGame.prestige = prestigeData;
+
+    // Apply prestige bonuses to new game
+    applyPrestigeBonusesToNewGame();
+
+    // Save the new state
+    save();
+
+    // Refresh the page to reinitialize
+    location.reload();
+}
+
+// Reset game state (keep prestige)
+function resetGameState() {
+    // Reset resources
+    for (let resource in villageGame.resources) {
+        villageGame.resources[resource].owned = 0;
+    }
+    villageGame.resources.food.max = 100;
+    villageGame.resources.wood.max = 100;
+    villageGame.resources.metal.max = 100;
+    villageGame.resources.herbs.max = 50;
+    villageGame.resources.iron.max = 100;
+    villageGame.resources.peasants.max = 10;
+
+    // Reset buildings
+    for (let building in villageGame.buildings) {
+        villageGame.buildings[building].owned = 0;
+        // Reset cost to base cost
+        if (villageGame.buildings[building].baseCost) {
+            villageGame.buildings[building].cost = JSON.parse(JSON.stringify(villageGame.buildings[building].baseCost));
+        }
+        // Reset unlock status (except Campfire)
+        if (building !== 'Campfire') {
+            villageGame.buildings[building].unlocked = false;
+        }
+    }
+
+    // Reset jobs
+    for (let job in villageGame.jobs) {
+        villageGame.jobs[job].owned = 0;
+        villageGame.jobs[job].unlocked = false;
+    }
+
+    // Reset upgrades
+    for (let upgrade in villageGame.upgrades) {
+        villageGame.upgrades[upgrade].purchased = false;
+        villageGame.upgrades[upgrade].unlocked = false;
+    }
+
+    // Reset global state
+    villageGame.global.playerGathering = "";
+    villageGame.global.woodConsumption = 0;
+    villageGame.global.campfireActive = true;
+    villageGame.global.workTimePercentage = 100;
+    villageGame.global.morale = 100;
+    villageGame.global.deathUnlocked = false;
+    villageGame.global.firstDeathTriggered = false;
+    villageGame.global.deathCount = 0;
+    villageGame.global.herbalistUnlocked = false;
+    villageGame.global.birthAccumulator = 0;
+    villageGame.global.deathAccumulator = 0;
+    villageGame.global.campfireAccumulator = 0;
+    villageGame.global.explorationAccumulator = 0;
+    villageGame.global.population10StoryTriggered = false;
+    villageGame.global.jobsUnlocked = false;
+    villageGame.global.granaryUnlocked = false;
+    villageGame.global.lumberyardUnlocked = false;
+    villageGame.global.herbGardenUnlocked = false;
+    villageGame.global.moraleSystemUnlocked = false;
+    villageGame.global.birthRateUnlocked = false;
+    villageGame.global.firstChildBorn = false;
+    villageGame.global.explorerUnlocked = false;
+    villageGame.global.expeditionUnlocked = false;
+    villageGame.global.expeditionPartySize = 0;
+    villageGame.global.expeditionActive = false;
+    villageGame.global.quarryUnlocked = false;
+    villageGame.global.workshopUnlocked = false;
+    villageGame.global.libraryUnlocked = false;
+    villageGame.global.marketUnlocked = false;
+    villageGame.global.templeUnlocked = false;
+    villageGame.global.barracksUnlocked = false;
+    villageGame.global.monsterDiscovered = false;
+    villageGame.global.workshopBonus = 0;
+    villageGame.global.templeBonus = 0;
+    villageGame.global.combatStrength = 0;
+    villageGame.global.monstersDefeated = 0;
+    villageGame.global.bossDefeated = false;
+    villageGame.global.upgradesUnlocked = false;
+
+    // Reset upgrade bonuses
+    for (let bonus in villageGame.global.upgradeBonus) {
+        villageGame.global.upgradeBonus[bonus] = 0;
+    }
+
+    // Reset map
+    villageGame.map.tiles = [];
+    villageGame.map.exploredTiles = 0;
+}
+
+// Apply prestige bonuses to new game
+function applyPrestigeBonusesToNewGame() {
+    const bonuses = villageGame.prestige.bonuses;
+    const upgrades = villageGame.prestige.upgrades;
+
+    // Apply starting resources bonus
+    if (bonuses.startingResources > 0) {
+        villageGame.resources.food.owned = bonuses.startingResources;
+        villageGame.resources.wood.owned = bonuses.startingResources;
+    }
+
+    // Apply population cap bonus
+    if (bonuses.populationCapBonus > 0) {
+        villageGame.resources.peasants.max += bonuses.populationCapBonus;
+    }
+
+    // Apply Dragonslayer Legacy special bonus
+    if (upgrades.DragonslayerLegacy && upgrades.DragonslayerLegacy.purchased > 0) {
+        villageGame.resources.food.owned += 100;
+        villageGame.resources.wood.owned += 100;
+        villageGame.resources.metal.owned += 100;
+        villageGame.resources.herbs.owned += 100;
+        villageGame.resources.iron.owned += 100;
+        villageGame.resources.peasants.max += 20;
+    }
+
+    // Apply Ancient Knowledge bonus (unlock tier 1 upgrades)
+    if (upgrades.AncientKnowledge && upgrades.AncientKnowledge.purchased > 0) {
+        let tier1Unlocked = 0;
+        const tier1Upgrades = ['BetterTools', 'EfficientGathering', 'BasicMedicine', 'Cartography'];
+        for (let upgrade of tier1Upgrades) {
+            if (tier1Unlocked < upgrades.AncientKnowledge.purchased && villageGame.upgrades[upgrade]) {
+                villageGame.upgrades[upgrade].unlocked = true;
+                tier1Unlocked++;
+            }
+        }
+    }
+}
+
+// Apply prestige production bonus (called in job production calculation)
+function getPrestigeProductionBonus() {
+    return villageGame.prestige.bonuses.productionMultiplier || 0;
+}
+
+// Apply prestige exploration bonus (called in exploration calculation)
+function getPrestigeExplorationBonus() {
+    return villageGame.prestige.bonuses.explorationBonus || 0;
+}
+
+// Apply prestige combat bonus (called in combat calculation)
+function getPrestigeCombatBonus() {
+    return villageGame.prestige.bonuses.combatBonus || 0;
+}
+
+// Apply prestige cost reduction (called in building/research cost calculation)
+function getPrestigeCostReduction() {
+    return villageGame.prestige.bonuses.costReduction || 0;
+}
+
+// Apply prestige immigration bonus (called in immigration calculation)
+function getPrestigeImmigrationBonus() {
+    return villageGame.prestige.bonuses.immigrationBonus || 0;
+}
+
+// Initialize prestige button event listener
+function initializePrestigeButton() {
+    const prestigeButton = document.getElementById('prestigeButton');
+    if (prestigeButton) {
+        prestigeButton.onclick = function() {
+            if (confirm('Are you sure you want to prestige? This will reset all progress except Legacy upgrades!')) {
+                performPrestige();
+            }
+        };
+    }
 }

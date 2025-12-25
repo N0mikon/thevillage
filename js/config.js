@@ -495,5 +495,116 @@ var villageGame = {
             requires: ["Architecture"],
             unlocked: false
         }
+    },
+    // Prestige System - Permanent bonuses that persist through resets
+    prestige: {
+        legacyPoints: 0, // Current unspent legacy points
+        totalLegacyPointsEarned: 0, // Total legacy points ever earned
+        timesPrestiged: 0, // Number of times the player has prestiged
+        dragonsSlain: 0, // Total dragons slain across all runs
+        unlocked: false, // Prestige unlocks after first dragon kill
+        // Prestige bonuses (permanent, applied immediately each run)
+        bonuses: {
+            startingResources: 0, // Bonus starting resources (x10 per level)
+            productionMultiplier: 0, // Production bonus (5% per level)
+            explorationBonus: 0, // Exploration speed bonus (10% per level)
+            combatBonus: 0, // Combat strength bonus (15% per level)
+            populationCapBonus: 0, // Starting population cap bonus (+5 per level)
+            costReduction: 0, // Building/research cost reduction (3% per level)
+            immigrationBonus: 0 // Immigration speed bonus (10% per level)
+        },
+        // Prestige upgrades (purchased with legacy points)
+        upgrades: {
+            ResourceHeadstart: {
+                purchased: 0, // Tracks level (0-10)
+                maxLevel: 10,
+                cost: 1, // Cost per level
+                costScale: 1.5, // Cost multiplier per level
+                description: "Start with bonus resources each run.",
+                effect: "Start with +10 of each resource per level",
+                effectValue: 10,
+                category: "starting"
+            },
+            VeteranWorkers: {
+                purchased: 0,
+                maxLevel: 20,
+                cost: 2,
+                costScale: 1.3,
+                description: "Your workers remember their skills from past lives.",
+                effect: "+5% production per level",
+                effectValue: 0.05,
+                category: "production"
+            },
+            ExperiencedExplorers: {
+                purchased: 0,
+                maxLevel: 10,
+                cost: 3,
+                costScale: 1.5,
+                description: "Explorers know the land better each time.",
+                effect: "+10% exploration speed per level",
+                effectValue: 0.10,
+                category: "exploration"
+            },
+            BattleHardened: {
+                purchased: 0,
+                maxLevel: 10,
+                cost: 4,
+                costScale: 1.5,
+                description: "Soldiers trained by veterans of past battles.",
+                effect: "+15% combat strength per level",
+                effectValue: 0.15,
+                category: "combat"
+            },
+            ExpandedSettlement: {
+                purchased: 0,
+                maxLevel: 10,
+                cost: 3,
+                costScale: 1.4,
+                description: "Your settlement starts with better infrastructure.",
+                effect: "+5 starting population cap per level",
+                effectValue: 5,
+                category: "population"
+            },
+            EfficientDesigns: {
+                purchased: 0,
+                maxLevel: 10,
+                cost: 5,
+                costScale: 1.6,
+                description: "Building designs refined over generations.",
+                effect: "-3% building and research costs per level",
+                effectValue: 0.03,
+                category: "economy"
+            },
+            FamousVillage: {
+                purchased: 0,
+                maxLevel: 10,
+                cost: 4,
+                costScale: 1.5,
+                description: "Word of your village spreads across the land.",
+                effect: "+10% immigration speed per level",
+                effectValue: 0.10,
+                category: "population"
+            },
+            AncientKnowledge: {
+                purchased: 0,
+                maxLevel: 5,
+                cost: 10,
+                costScale: 2.0,
+                description: "Unlock research upgrades earlier.",
+                effect: "Start with first N tier 1 upgrades unlocked per level",
+                effectValue: 1,
+                category: "research"
+            },
+            DragonslayerLegacy: {
+                purchased: 0,
+                maxLevel: 1,
+                cost: 50,
+                costScale: 1,
+                description: "The legend of the Dragonslayer lives on.",
+                effect: "Start with +100 of all resources and 20 population cap",
+                effectValue: 1,
+                category: "special"
+            }
+        }
     }
 };
