@@ -1057,8 +1057,217 @@ function updateCityType(cityType) {
     }
 }
 
+// ============================================
+// SAVE/LOAD SYSTEM
+// ============================================
+
+// Save game state
+function save(exportMode) {
+    const saveData = {
+        version: 1,
+        timestamp: Date.now(),
+        resources: villageGame.resources,
+        buildings: villageGame.buildings,
+        jobs: villageGame.jobs,
+        global: villageGame.global,
+        map: villageGame.map
+    };
+
+    const saveString = JSON.stringify(saveData);
+    const compressed = btoa(saveString); // Base64 encode for export
+
+    if (exportMode) {
+        // Return compressed string for export
+        return compressed;
+    } else {
+        // Save to localStorage
+        try {
+            localStorage.setItem('theVillageSave', compressed);
+            console.log('Game saved successfully!');
+            return true;
+        } catch (e) {
+            console.error('Failed to save game:', e);
+            return false;
+        }
+    }
+}
+
+// Load game state
+function load(saveData) {
+    try {
+        let compressed;
+
+        if (saveData) {
+            // Load from provided string (import)
+            compressed = saveData;
+        } else {
+            // Load from localStorage
+            compressed = localStorage.getItem('theVillageSave');
+            if (!compressed) {
+                console.log('No save data found.');
+                return false;
+            }
+        }
+
+        // Decompress and parse
+        const saveString = atob(compressed);
+        const data = JSON.parse(saveString);
+
+        // Version check for future migrations
+        if (data.version !== 1) {
+            console.warn('Save version mismatch, attempting to load anyway...');
+        }
+
+        // Restore game state
+        if (data.resources) {
+            for (let key in data.resources) {
+                if (villageGame.resources[key]) {
+                    villageGame.resources[key] = data.resources[key];
+                }
+            }
+        }
+
+        if (data.buildings) {
+            for (let key in data.buildings) {
+                if (villageGame.buildings[key]) {
+                    villageGame.buildings[key] = data.buildings[key];
+                }
+            }
+        }
+
+        if (data.jobs) {
+            for (let key in data.jobs) {
+                if (villageGame.jobs[key]) {
+                    villageGame.jobs[key] = data.jobs[key];
+                }
+            }
+        }
+
+        if (data.global) {
+            for (let key in data.global) {
+                if (villageGame.global.hasOwnProperty(key)) {
+                    villageGame.global[key] = data.global[key];
+                }
+            }
+        }
+
+        if (data.map) {
+            villageGame.map = data.map;
+        }
+
+        console.log('Game loaded successfully! Save from:', new Date(data.timestamp).toLocaleString());
+        return true;
+    } catch (e) {
+        console.error('Failed to load game:', e);
+        throw e; // Re-throw for UI error handling
+    }
+}
+
+// Auto-save every 30 seconds
+function startAutoSave() {
+    setInterval(() => {
+        save();
+    }, 30000);
+    console.log('Auto-save enabled (every 30 seconds)');
+}
+
+// Clear save data
+function clearSave() {
+    if (confirm('Are you sure you want to delete your save? This cannot be undone!')) {
+        localStorage.removeItem('theVillageSave');
+        location.reload();
+    }
+}
+
+// Make save/load functions globally available
+window.save = save;
+window.load = load;
+window.clearSave = clearSave;
+
 // Initialize when the page loads
 document.addEventListener('DOMContentLoaded', function() {
+    // Try to load existing save
+    const hasSave = load();
+
     // Initialize our village game
-    setTimeout(initVillageGame, 100);
+    setTimeout(() => {
+        initVillageGame();
+
+        // If we loaded a save, update all displays
+        if (hasSave) {
+            updateAllDisplays();
+
+            // Restore UI state for unlocked elements
+            restoreUnlockedUI();
+        }
+
+        // Start auto-save
+        startAutoSave();
+    }, 100);
 });
+
+// Restore UI visibility for unlocked elements after loading
+function restoreUnlockedUI() {
+    // Restore job visibility
+    if (villageGame.global.jobsUnlocked) {
+        const farmerElement = document.querySelector('[data-job="Farmer"]');
+        const woodcutterElement = document.querySelector('[data-job="Woodcutter"]');
+        if (farmerElement) farmerElement.style.display = 'block';
+        if (woodcutterElement) woodcutterElement.style.display = 'block';
+    }
+
+    if (villageGame.global.herbalistUnlocked) {
+        const herbalistElement = document.querySelector('[data-job="Herbalist"]');
+        if (herbalistElement) herbalistElement.style.display = 'block';
+        showResource('herbs');
+    }
+
+    if (villageGame.global.explorerUnlocked) {
+        const explorerElement = document.querySelector('[data-job="Explorer"]');
+        if (explorerElement) explorerElement.style.display = 'block';
+    }
+
+    if (villageGame.global.expeditionUnlocked) {
+        const expeditionPanel = document.getElementById('expeditionPanel');
+        if (expeditionPanel) expeditionPanel.style.display = 'block';
+    }
+
+    // Restore building visibility
+    if (villageGame.buildings.WoodenHut.unlocked) {
+        const woodenHutElement = document.querySelector('[data-building="WoodenHut"]');
+        if (woodenHutElement) woodenHutElement.style.display = 'block';
+    }
+
+    if (villageGame.buildings.Granary.unlocked) {
+        const granaryElement = document.querySelector('[data-building="Granary"]');
+        if (granaryElement) granaryElement.style.display = 'block';
+    }
+
+    if (villageGame.buildings.Lumberyard.unlocked) {
+        const lumberyardElement = document.querySelector('[data-building="Lumberyard"]');
+        if (lumberyardElement) lumberyardElement.style.display = 'block';
+    }
+
+    if (villageGame.buildings.HerbGarden.unlocked) {
+        const herbGardenElement = document.querySelector('[data-building="HerbGarden"]');
+        if (herbGardenElement) herbGardenElement.style.display = 'block';
+    }
+
+    // Restore rate display visibility
+    if (villageGame.global.birthRateUnlocked) {
+        const birthRateElement = document.getElementById('birthRate');
+        if (birthRateElement) birthRateElement.style.display = 'block';
+    }
+
+    if (villageGame.global.deathUnlocked) {
+        const deathRateElement = document.getElementById('deathRate');
+        if (deathRateElement) deathRateElement.style.display = 'block';
+    }
+
+    // Update campfire state based on wood consumption
+    if (villageGame.global.woodConsumption > 0) {
+        villageGame.global.campfireActive = villageGame.resources.wood.owned > 0;
+    }
+
+    console.log('UI state restored from save');
+}
