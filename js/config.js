@@ -226,7 +226,26 @@ var villageGame = {
         combatStrength: 0, // Total combat strength from soldiers
         monstersDefeated: 0, // Total monsters defeated
         bossDefeated: false, // Track if boss has been defeated
-        combatLog: [] // Recent combat log entries
+        combatLog: [], // Recent combat log entries
+        // Upgrade system bonuses
+        upgradesUnlocked: false, // Track if upgrade panel has been unlocked (Library built)
+        upgradeBonus: {
+            farmerProduction: 0, // Bonus to farmer production (additive percentage)
+            woodcutterProduction: 0, // Bonus to woodcutter production
+            herbalistProduction: 0, // Bonus to herbalist production
+            minerProduction: 0, // Bonus to miner production
+            scholarProduction: 0, // Bonus to scholar production
+            merchantProduction: 0, // Bonus to merchant production
+            allProduction: 0, // Bonus to all job production
+            gatheringSpeed: 0, // Bonus to player gathering speed
+            explorationSpeed: 0, // Bonus to exploration speed
+            explorationRewards: 0, // Bonus to exploration resource rewards
+            combatStrength: 0, // Bonus to soldier combat strength
+            deathRateReduction: 0, // Reduction to death rate
+            immigrationRate: 0, // Bonus to immigration rate
+            buildingCostReduction: 0, // Reduction to building costs
+            researchCostReduction: 0 // Reduction to research costs
+        }
     },
     settings: {
         speed: 10 // 10 ticks per second
@@ -236,5 +255,245 @@ var villageGame = {
         height: 8,
         tiles: [], // Will be populated with map tiles
         exploredTiles: 0 // Track number of explored tiles
+    },
+    upgrades: {
+        // Tier 1 - Basic Research (requires Library)
+        BetterTools: {
+            purchased: false,
+            cost: { science: 10 },
+            description: "Improved farming and woodcutting tools.",
+            effect: "Farmers and Woodcutters produce 25% more resources",
+            effectValue: 0.25,
+            category: "production",
+            tier: 1,
+            requires: [],
+            unlocked: false
+        },
+        EfficientGathering: {
+            purchased: false,
+            cost: { science: 15 },
+            description: "Techniques for more efficient resource gathering.",
+            effect: "Player gathering speed increased by 50%",
+            effectValue: 0.5,
+            category: "gathering",
+            tier: 1,
+            requires: [],
+            unlocked: false
+        },
+        BasicMedicine: {
+            purchased: false,
+            cost: { science: 20 },
+            description: "Basic understanding of medicinal herbs.",
+            effect: "Herbalists produce 50% more herbs",
+            effectValue: 0.5,
+            category: "production",
+            tier: 1,
+            requires: [],
+            unlocked: false
+        },
+        Cartography: {
+            purchased: false,
+            cost: { science: 25 },
+            description: "The art of map-making improves exploration.",
+            effect: "Explorers work 50% faster",
+            effectValue: 0.5,
+            category: "exploration",
+            tier: 1,
+            requires: [],
+            unlocked: false
+        },
+
+        // Tier 2 - Advanced Research
+        IronTools: {
+            purchased: false,
+            cost: { science: 50, iron: 20 },
+            description: "Tools forged from iron last longer and cut deeper.",
+            effect: "All job production increased by 15%",
+            effectValue: 0.15,
+            category: "production",
+            tier: 2,
+            requires: ["BetterTools"],
+            unlocked: false
+        },
+        Agriculture: {
+            purchased: false,
+            cost: { science: 40 },
+            description: "Advanced farming techniques for better yields.",
+            effect: "Farmers produce 50% more food",
+            effectValue: 0.5,
+            category: "production",
+            tier: 2,
+            requires: ["BetterTools"],
+            unlocked: false
+        },
+        Forestry: {
+            purchased: false,
+            cost: { science: 40 },
+            description: "Sustainable logging practices.",
+            effect: "Woodcutters produce 50% more wood",
+            effectValue: 0.5,
+            category: "production",
+            tier: 2,
+            requires: ["BetterTools"],
+            unlocked: false
+        },
+        Geology: {
+            purchased: false,
+            cost: { science: 45 },
+            description: "Understanding of rock formations and ore veins.",
+            effect: "Miners produce 50% more stone",
+            effectValue: 0.5,
+            category: "production",
+            tier: 2,
+            requires: ["BetterTools"],
+            unlocked: false
+        },
+        AdvancedMedicine: {
+            purchased: false,
+            cost: { science: 60 },
+            description: "Advanced herbal remedies and treatments.",
+            effect: "Death rate reduced by 25%",
+            effectValue: 0.25,
+            category: "survival",
+            tier: 2,
+            requires: ["BasicMedicine"],
+            unlocked: false
+        },
+        Navigation: {
+            purchased: false,
+            cost: { science: 55 },
+            description: "Star-based navigation techniques.",
+            effect: "Exploration yields 25% more resources",
+            effectValue: 0.25,
+            category: "exploration",
+            tier: 2,
+            requires: ["Cartography"],
+            unlocked: false
+        },
+
+        // Tier 3 - Expert Research
+        SteelForging: {
+            purchased: false,
+            cost: { science: 100, iron: 50 },
+            description: "The secrets of forging steel from iron.",
+            effect: "All job production increased by 25%",
+            effectValue: 0.25,
+            category: "production",
+            tier: 3,
+            requires: ["IronTools"],
+            unlocked: false
+        },
+        CropRotation: {
+            purchased: false,
+            cost: { science: 80 },
+            description: "Rotating crops to maintain soil fertility.",
+            effect: "Farmers produce 75% more food",
+            effectValue: 0.75,
+            category: "production",
+            tier: 3,
+            requires: ["Agriculture"],
+            unlocked: false
+        },
+        MilitaryTactics: {
+            purchased: false,
+            cost: { science: 90, iron: 30 },
+            description: "Advanced combat strategies and formations.",
+            effect: "Soldiers provide 50% more combat strength",
+            effectValue: 0.5,
+            category: "combat",
+            tier: 3,
+            requires: ["IronTools"],
+            unlocked: false
+        },
+        TradeRoutes: {
+            purchased: false,
+            cost: { science: 85, gems: 25 },
+            description: "Established trade routes with distant lands.",
+            effect: "Merchants produce 100% more gold",
+            effectValue: 1.0,
+            category: "economy",
+            tier: 3,
+            requires: ["Navigation"],
+            unlocked: false
+        },
+        Philosophy: {
+            purchased: false,
+            cost: { science: 100 },
+            description: "Deep thinking about the nature of existence.",
+            effect: "Scholars produce 50% more knowledge",
+            effectValue: 0.5,
+            category: "research",
+            tier: 3,
+            requires: [],
+            unlocked: false
+        },
+        Architecture: {
+            purchased: false,
+            cost: { science: 120, metal: 50 },
+            description: "Advanced building techniques and designs.",
+            effect: "Building costs reduced by 15%",
+            effectValue: 0.15,
+            category: "construction",
+            tier: 3,
+            requires: ["Geology"],
+            unlocked: false
+        },
+
+        // Tier 4 - Master Research
+        Industrialization: {
+            purchased: false,
+            cost: { science: 200, iron: 100 },
+            description: "The beginning of industrial production.",
+            effect: "All job production increased by 50%",
+            effectValue: 0.5,
+            category: "production",
+            tier: 4,
+            requires: ["SteelForging"],
+            unlocked: false
+        },
+        Diplomacy: {
+            purchased: false,
+            cost: { science: 150, gems: 50 },
+            description: "The art of negotiation and peaceful relations.",
+            effect: "Immigration rate increased by 50%",
+            effectValue: 0.5,
+            category: "population",
+            tier: 4,
+            requires: ["TradeRoutes"],
+            unlocked: false
+        },
+        WarMachines: {
+            purchased: false,
+            cost: { science: 180, iron: 75 },
+            description: "Siege equipment and war machines.",
+            effect: "Soldiers provide 100% more combat strength",
+            effectValue: 1.0,
+            category: "combat",
+            tier: 4,
+            requires: ["MilitaryTactics"],
+            unlocked: false
+        },
+        Enlightenment: {
+            purchased: false,
+            cost: { science: 250 },
+            description: "A new age of reason and understanding.",
+            effect: "All research costs reduced by 20%",
+            effectValue: 0.2,
+            category: "research",
+            tier: 4,
+            requires: ["Philosophy"],
+            unlocked: false
+        },
+        MasterBuilders: {
+            purchased: false,
+            cost: { science: 200, metal: 100 },
+            description: "The greatest builders in the land.",
+            effect: "Building costs reduced by 25%",
+            effectValue: 0.25,
+            category: "construction",
+            tier: 4,
+            requires: ["Architecture"],
+            unlocked: false
+        }
     }
 };

@@ -12,15 +12,20 @@
 // Handle peasant death rate
 function handlePeasantDeathRate() {
     const totalPeasants = Math.floor(villageGame.resources.peasants.owned);
-    
+
     // Only process death if population >= 20 and peasants exist
     if (totalPeasants >= 20 && totalPeasants > 0) {
         // Base death rate: 1/1000th of integer peasant count per second
         let deathRate = (totalPeasants * villageGame.global.deathRate) / villageGame.settings.speed;
-        
+
         // Reduce death rate based on herbs in storage (0.001/sec per herb)
         const herbsReduction = (villageGame.resources.herbs.owned * 0.001) / villageGame.settings.speed;
         deathRate = Math.max(0, deathRate - herbsReduction);
+
+        // Apply upgrade death rate reduction
+        const upgradeBonus = villageGame.global.upgradeBonus || {};
+        const deathRateReduction = 1 - (upgradeBonus.deathRateReduction || 0);
+        deathRate = deathRate * deathRateReduction;
         
         // Add to death accumulator
         villageGame.global.deathAccumulator += deathRate;
@@ -279,10 +284,12 @@ function handleExploration() {
 
     const expeditionExplorers = villageGame.global.expeditionPartySize;
 
-    // Calculate exploration rate (0.1 tile per second per expedition explorer)
+    // Calculate exploration rate (0.1 tile per second per expedition explorer) with upgrade bonuses
     const workEfficiency = villageGame.global.workTimePercentage / 100;
     const moraleEfficiency = villageGame.global.morale / 100;
-    const explorationRate = (expeditionExplorers * 0.1 * workEfficiency * moraleEfficiency) / villageGame.settings.speed;
+    const upgradeBonus = villageGame.global.upgradeBonus || {};
+    const explorationSpeedBonus = 1 + (upgradeBonus.explorationSpeed || 0);
+    const explorationRate = (expeditionExplorers * 0.1 * workEfficiency * moraleEfficiency * explorationSpeedBonus) / villageGame.settings.speed;
 
     // Add to exploration accumulator
     if (!villageGame.global.explorationAccumulator) {
@@ -361,10 +368,12 @@ function handleCombat(tile) {
         return;
     }
 
-    // Calculate combat strength
+    // Calculate combat strength with upgrade bonuses
     const soldierCount = villageGame.jobs.Soldier ? villageGame.jobs.Soldier.owned : 0;
     const soldierStrength = soldierCount * 10; // 10 combat strength per soldier
-    const combatStrength = soldierStrength;
+    const upgradeBonus = villageGame.global.upgradeBonus || {};
+    const combatStrengthBonus = 1 + (upgradeBonus.combatStrength || 0);
+    const combatStrength = Math.floor(soldierStrength * combatStrengthBonus);
     villageGame.global.combatStrength = combatStrength;
 
     // Combat resolution
@@ -407,10 +416,15 @@ function handleCombat(tile) {
 function collectTileResources(tile) {
     if (!tile.resources || typeof tile.resources !== 'object') return;
 
+    // Apply exploration rewards bonus
+    const upgradeBonus = villageGame.global.upgradeBonus || {};
+    const explorationRewardsBonus = 1 + (upgradeBonus.explorationRewards || 0);
+
     let resourcesGained = [];
 
     for (let resource in tile.resources) {
-        const amount = tile.resources[resource];
+        const baseAmount = tile.resources[resource];
+        const amount = Math.floor(baseAmount * explorationRewardsBonus);
         if (amount > 0 && villageGame.resources[resource]) {
             villageGame.resources[resource].owned += amount;
 
@@ -445,7 +459,9 @@ function updateCombatDisplay() {
     const combatStatsElement = document.getElementById('combatStats');
     if (combatStatsElement) {
         const soldierCount = villageGame.jobs.Soldier ? villageGame.jobs.Soldier.owned : 0;
-        const combatStrength = soldierCount * 10;
+        const upgradeBonus = villageGame.global.upgradeBonus || {};
+        const combatStrengthBonus = 1 + (upgradeBonus.combatStrength || 0);
+        const combatStrength = Math.floor(soldierCount * 10 * combatStrengthBonus);
         combatStatsElement.innerHTML = `
             <div>Soldiers: ${soldierCount}</div>
             <div>Combat Strength: ${combatStrength}</div>
@@ -508,9 +524,11 @@ function updateMapDisplay() {
 
     mapHTML += '</div>';
 
-    // Combat stats panel
+    // Combat stats panel with upgrade bonus
     const soldierCount = villageGame.jobs.Soldier ? villageGame.jobs.Soldier.owned : 0;
-    const combatStrength = soldierCount * 10;
+    const upgradeBonus = villageGame.global.upgradeBonus || {};
+    const combatStrengthBonus = 1 + (upgradeBonus.combatStrength || 0);
+    const combatStrength = Math.floor(soldierCount * 10 * combatStrengthBonus);
     mapHTML += `<div class="map-stats">
         <div>Explored: ${map.exploredTiles}/${map.width * map.height} tiles | Monsters Defeated: ${villageGame.global.monstersDefeated || 0}</div>
         <div>Combat Strength: ⚔️${combatStrength} (${soldierCount} soldiers)</div>
@@ -574,30 +592,36 @@ function updateAllDisplays() {
 function buyBuilding(buildingName) {
     const building = villageGame.buildings[buildingName];
     if (!building) return false;
-    
+
     // Check if building is unlocked
     if (building.unlocked === false) {
         addMessage(`${buildingName} is not yet available!`, "Loot");
         return false;
     }
-    
+
     // Check if we've reached the maximum (10)
     if (building.owned >= 10) {
         addMessage(`${buildingName} has reached the maximum limit of 10!`, "Loot");
         return false;
     }
-    
-    // Check if we have enough resources
+
+    // Calculate building cost reduction from upgrades
+    const upgradeBonus = villageGame.global.upgradeBonus || {};
+    const costReduction = 1 - (upgradeBonus.buildingCostReduction || 0);
+
+    // Check if we have enough resources (with cost reduction applied)
     for (let resource in building.cost) {
-        if (villageGame.resources[resource].owned < building.cost[resource]) {
-            addMessage(`Not enough ${resource}! Need ${building.cost[resource]}, have ${Math.floor(villageGame.resources[resource].owned)}.`, "Loot");
+        const actualCost = Math.ceil(building.cost[resource] * costReduction);
+        if (villageGame.resources[resource].owned < actualCost) {
+            addMessage(`Not enough ${resource}! Need ${actualCost}, have ${Math.floor(villageGame.resources[resource].owned)}.`, "Loot");
             return false;
         }
     }
-    
-    // Deduct resources
+
+    // Deduct resources (with cost reduction applied)
     for (let resource in building.cost) {
-        villageGame.resources[resource].owned -= building.cost[resource];
+        const actualCost = Math.ceil(building.cost[resource] * costReduction);
+        villageGame.resources[resource].owned -= actualCost;
     }
     
     // Add building
@@ -692,6 +716,22 @@ function buyBuilding(buildingName) {
             }
 
             addMessage("Scholar Job Unlocked", "Unlock");
+        }
+
+        // Unlock upgrades panel on first Library
+        if (!villageGame.global.upgradesUnlocked) {
+            villageGame.global.upgradesUnlocked = true;
+
+            const upgradesPanel = document.getElementById('upgradesPanel');
+            if (upgradesPanel) {
+                upgradesPanel.style.display = 'block';
+            }
+
+            // Initialize tier 1 upgrades
+            initializeUpgrades();
+
+            addMessage("Research Unlocked", "Unlock");
+            addMessage("With the library built, your scholars can now research new technologies and improvements.", "Story");
         }
 
         // First time story
@@ -867,6 +907,11 @@ function addMessage(text, type) {
             icon = '⚔️';
             dataType = 'combat';
             break;
+        case 'Research':
+            messageClass = 'ResearchMessage';
+            icon = '📚';
+            dataType = 'unlocks';
+            break;
         case 'Unlock':
             messageClass = 'StoryMessage';
             icon = '🔓';
@@ -904,12 +949,17 @@ function addMessage(text, type) {
 
 // Update building displays
 function updateBuildingDisplays() {
-    // Helper function to format cost string
+    // Calculate building cost reduction from upgrades
+    const upgradeBonus = villageGame.global.upgradeBonus || {};
+    const costReduction = 1 - (upgradeBonus.buildingCostReduction || 0);
+
+    // Helper function to format cost string with reduction applied
     function formatCost(cost) {
         const parts = [];
         const resourceNames = { wood: 'Wood', food: 'Food', metal: 'Stone', science: 'Knowledge', gems: 'Gold', herbs: 'Herbs', iron: 'Iron' };
         for (let res in cost) {
-            parts.push(`${cost[res]} ${resourceNames[res] || res}`);
+            const actualCost = Math.ceil(cost[res] * costReduction);
+            parts.push(`${actualCost} ${resourceNames[res] || res}`);
         }
         return parts.join(', ');
     }
@@ -996,17 +1046,19 @@ function updatePeoplePanelDisplays() {
     const immigrationRateElements = document.querySelectorAll('.people-rate-value');
     if (immigrationRateElements.length >= 1) {
         let immigrationRate = 0;
-        
+
         // Calculate immigration rate from campfires
         if (villageGame.buildings.Campfire.owned > 0 && villageGame.global.campfireActive) {
             // Check if we're at the peasant cap
             if (villageGame.resources.peasants.owned < villageGame.resources.peasants.max) {
                 // Immigration rate: 0.1 per second per campfire (1 peasant every 10 seconds)
                 // Note: Food check happens when actually adding peasant, not in rate calculation
-                immigrationRate = 0.1 * villageGame.buildings.Campfire.owned;
+                const upgradeBonus = villageGame.global.upgradeBonus || {};
+                const immigrationBonus = 1 + (upgradeBonus.immigrationRate || 0);
+                immigrationRate = 0.1 * villageGame.buildings.Campfire.owned * immigrationBonus;
             }
         }
-        
+
         immigrationRateElements[0].textContent = `+${immigrationRate.toFixed(3)}/sec`;
         immigrationRateElements[0].className = 'people-rate-value positive';
     }
@@ -1038,14 +1090,19 @@ function updatePeoplePanelDisplays() {
     // Update death rate display (only if unlocked after first death)
     if (immigrationRateElements.length >= 3 && villageGame.global.deathUnlocked) {
         const totalPeasants = Math.floor(villageGame.resources.peasants.owned);
-        
+
         // Base death rate: 1/1000th of integer peasant count per second
         let deathRate = totalPeasants * villageGame.global.deathRate;
-        
+
         // Reduce death rate based on herbs in storage (0.001/sec per herb)
         const herbsReduction = villageGame.resources.herbs.owned * 0.001;
         deathRate = Math.max(0, deathRate - herbsReduction);
-        
+
+        // Apply upgrade death rate reduction
+        const upgradeBonus = villageGame.global.upgradeBonus || {};
+        const deathRateReduction = 1 - (upgradeBonus.deathRateReduction || 0);
+        deathRate = deathRate * deathRateReduction;
+
         immigrationRateElements[2].textContent = `-${deathRate.toFixed(3)}/sec`;
         immigrationRateElements[2].className = 'people-rate-value negative';
     }
@@ -1297,19 +1354,321 @@ function updateCityType(cityType) {
 }
 
 // ============================================
+// UPGRADE/RESEARCH SYSTEM
+// ============================================
+
+// Initialize upgrades - unlock all tier 1 upgrades when Library is built
+function initializeUpgrades() {
+    for (let upgradeName in villageGame.upgrades) {
+        const upgrade = villageGame.upgrades[upgradeName];
+        // Tier 1 upgrades are immediately available when Library is built
+        if (upgrade.tier === 1) {
+            upgrade.unlocked = true;
+        }
+    }
+    updateUpgradesDisplay();
+}
+
+// Check if upgrade requirements are met
+function checkUpgradeRequirements(upgradeName) {
+    const upgrade = villageGame.upgrades[upgradeName];
+    if (!upgrade) return false;
+
+    // Check if all required upgrades have been purchased
+    for (let req of upgrade.requires) {
+        if (!villageGame.upgrades[req] || !villageGame.upgrades[req].purchased) {
+            return false;
+        }
+    }
+    return true;
+}
+
+// Check if upgrade can be afforded
+function canAffordUpgrade(upgradeName) {
+    const upgrade = villageGame.upgrades[upgradeName];
+    if (!upgrade) return false;
+
+    // Apply research cost reduction if Enlightenment is purchased
+    const costReduction = 1 - (villageGame.global.upgradeBonus.researchCostReduction || 0);
+
+    for (let resource in upgrade.cost) {
+        const actualCost = Math.ceil(upgrade.cost[resource] * costReduction);
+        if (!villageGame.resources[resource] || villageGame.resources[resource].owned < actualCost) {
+            return false;
+        }
+    }
+    return true;
+}
+
+// Purchase an upgrade
+function purchaseUpgrade(upgradeName) {
+    const upgrade = villageGame.upgrades[upgradeName];
+    if (!upgrade) return false;
+
+    // Check if already purchased
+    if (upgrade.purchased) {
+        addMessage("You have already researched this!", "Research");
+        return false;
+    }
+
+    // Check requirements
+    if (!checkUpgradeRequirements(upgradeName)) {
+        addMessage("Prerequisites not met for this research!", "Research");
+        return false;
+    }
+
+    // Check if can afford
+    if (!canAffordUpgrade(upgradeName)) {
+        addMessage("Not enough resources for this research!", "Research");
+        return false;
+    }
+
+    // Apply research cost reduction
+    const costReduction = 1 - (villageGame.global.upgradeBonus.researchCostReduction || 0);
+
+    // Deduct costs
+    for (let resource in upgrade.cost) {
+        const actualCost = Math.ceil(upgrade.cost[resource] * costReduction);
+        villageGame.resources[resource].owned -= actualCost;
+        updateResourceDisplay(resource);
+    }
+
+    // Mark as purchased
+    upgrade.purchased = true;
+
+    // Apply the upgrade effect
+    applyUpgradeEffect(upgradeName);
+
+    // Unlock dependent upgrades
+    unlockDependentUpgrades(upgradeName);
+
+    // Update displays
+    updateUpgradesDisplay();
+    updateResourcePerSecondDisplays();
+
+    addMessage(`Research Complete: ${formatUpgradeName(upgradeName)}! ${upgrade.effect}`, "Research");
+    return true;
+}
+
+// Apply the effect of an upgrade
+function applyUpgradeEffect(upgradeName) {
+    const upgrade = villageGame.upgrades[upgradeName];
+    const bonus = villageGame.global.upgradeBonus;
+
+    switch (upgradeName) {
+        // Tier 1
+        case 'BetterTools':
+            bonus.farmerProduction += upgrade.effectValue;
+            bonus.woodcutterProduction += upgrade.effectValue;
+            break;
+        case 'EfficientGathering':
+            bonus.gatheringSpeed += upgrade.effectValue;
+            break;
+        case 'BasicMedicine':
+            bonus.herbalistProduction += upgrade.effectValue;
+            break;
+        case 'Cartography':
+            bonus.explorationSpeed += upgrade.effectValue;
+            break;
+
+        // Tier 2
+        case 'IronTools':
+            bonus.allProduction += upgrade.effectValue;
+            break;
+        case 'Agriculture':
+            bonus.farmerProduction += upgrade.effectValue;
+            break;
+        case 'Forestry':
+            bonus.woodcutterProduction += upgrade.effectValue;
+            break;
+        case 'Geology':
+            bonus.minerProduction += upgrade.effectValue;
+            break;
+        case 'AdvancedMedicine':
+            bonus.deathRateReduction += upgrade.effectValue;
+            break;
+        case 'Navigation':
+            bonus.explorationRewards += upgrade.effectValue;
+            break;
+
+        // Tier 3
+        case 'SteelForging':
+            bonus.allProduction += upgrade.effectValue;
+            break;
+        case 'CropRotation':
+            bonus.farmerProduction += upgrade.effectValue;
+            break;
+        case 'MilitaryTactics':
+            bonus.combatStrength += upgrade.effectValue;
+            break;
+        case 'TradeRoutes':
+            bonus.merchantProduction += upgrade.effectValue;
+            break;
+        case 'Philosophy':
+            bonus.scholarProduction += upgrade.effectValue;
+            break;
+        case 'Architecture':
+            bonus.buildingCostReduction += upgrade.effectValue;
+            break;
+
+        // Tier 4
+        case 'Industrialization':
+            bonus.allProduction += upgrade.effectValue;
+            break;
+        case 'Diplomacy':
+            bonus.immigrationRate += upgrade.effectValue;
+            break;
+        case 'WarMachines':
+            bonus.combatStrength += upgrade.effectValue;
+            break;
+        case 'Enlightenment':
+            bonus.researchCostReduction += upgrade.effectValue;
+            break;
+        case 'MasterBuilders':
+            bonus.buildingCostReduction += upgrade.effectValue;
+            break;
+    }
+}
+
+// Unlock upgrades that depend on the purchased upgrade
+function unlockDependentUpgrades(purchasedUpgrade) {
+    for (let upgradeName in villageGame.upgrades) {
+        const upgrade = villageGame.upgrades[upgradeName];
+        if (upgrade.requires.includes(purchasedUpgrade) && !upgrade.unlocked) {
+            // Check if all requirements are now met
+            if (checkUpgradeRequirements(upgradeName)) {
+                upgrade.unlocked = true;
+            }
+        }
+    }
+}
+
+// Format upgrade name for display (add spaces before capitals)
+function formatUpgradeName(name) {
+    return name.replace(/([A-Z])/g, ' $1').trim();
+}
+
+// Format cost for display
+function formatUpgradeCost(cost) {
+    const resourceNames = {
+        science: 'Knowledge',
+        iron: 'Iron',
+        gems: 'Gold',
+        metal: 'Stone',
+        food: 'Food',
+        wood: 'Wood'
+    };
+
+    const costReduction = 1 - (villageGame.global.upgradeBonus.researchCostReduction || 0);
+    const parts = [];
+    for (let resource in cost) {
+        const actualCost = Math.ceil(cost[resource] * costReduction);
+        const name = resourceNames[resource] || resource;
+        parts.push(`${actualCost} ${name}`);
+    }
+    return parts.join(', ');
+}
+
+// Update the upgrades display
+function updateUpgradesDisplay() {
+    const grid = document.getElementById('upgradesGrid');
+    if (!grid) return;
+
+    // Update knowledge display
+    const knowledgeDisplay = document.getElementById('upgradeKnowledge');
+    if (knowledgeDisplay) {
+        knowledgeDisplay.textContent = Math.floor(villageGame.resources.science.owned);
+    }
+
+    // Get current filter
+    const activeTab = document.querySelector('.upgrade-tab.active');
+    const currentFilter = activeTab ? activeTab.getAttribute('data-category') : 'all';
+
+    // Clear and rebuild
+    grid.innerHTML = '';
+
+    // Sort upgrades by tier, then by name
+    const sortedUpgrades = Object.entries(villageGame.upgrades)
+        .filter(([name, upgrade]) => upgrade.unlocked || upgrade.purchased)
+        .filter(([name, upgrade]) => currentFilter === 'all' || upgrade.category === currentFilter)
+        .sort((a, b) => {
+            if (a[1].tier !== b[1].tier) return a[1].tier - b[1].tier;
+            return a[0].localeCompare(b[0]);
+        });
+
+    for (let [upgradeName, upgrade] of sortedUpgrades) {
+        const card = document.createElement('div');
+        card.className = 'upgrade-card';
+        card.setAttribute('data-upgrade', upgradeName);
+
+        // Check status
+        const requirementsMet = checkUpgradeRequirements(upgradeName);
+        const affordable = canAffordUpgrade(upgradeName);
+
+        if (upgrade.purchased) {
+            card.classList.add('purchased');
+        } else if (!requirementsMet) {
+            card.classList.add('locked');
+        } else if (affordable) {
+            card.classList.add('affordable');
+        }
+
+        // Build card content
+        let html = `
+            <div class="upgrade-tier tier-${upgrade.tier}">Tier ${upgrade.tier}</div>
+            <div class="upgrade-name">${formatUpgradeName(upgradeName)}</div>
+            <div class="upgrade-description">${upgrade.description}</div>
+            <div class="upgrade-effect">${upgrade.effect}</div>
+        `;
+
+        if (!upgrade.purchased) {
+            html += `<div class="upgrade-cost">Cost: ${formatUpgradeCost(upgrade.cost)}</div>`;
+
+            if (upgrade.requires.length > 0 && !requirementsMet) {
+                const reqNames = upgrade.requires.map(r => formatUpgradeName(r)).join(', ');
+                html += `<div class="upgrade-requires">Requires: ${reqNames}</div>`;
+            }
+        }
+
+        card.innerHTML = html;
+
+        // Add click handler
+        if (!upgrade.purchased && requirementsMet) {
+            card.addEventListener('click', () => purchaseUpgrade(upgradeName));
+        }
+
+        grid.appendChild(card);
+    }
+}
+
+// Filter upgrades by category
+function filterUpgrades(category) {
+    // Update active tab
+    document.querySelectorAll('.upgrade-tab').forEach(tab => {
+        tab.classList.remove('active');
+        if (tab.getAttribute('data-category') === category) {
+            tab.classList.add('active');
+        }
+    });
+
+    updateUpgradesDisplay();
+}
+
+// ============================================
 // SAVE/LOAD SYSTEM
 // ============================================
 
 // Save game state
 function save(exportMode) {
     const saveData = {
-        version: 1,
+        version: 2,
         timestamp: Date.now(),
         resources: villageGame.resources,
         buildings: villageGame.buildings,
         jobs: villageGame.jobs,
         global: villageGame.global,
-        map: villageGame.map
+        map: villageGame.map,
+        upgrades: villageGame.upgrades
     };
 
     const saveString = JSON.stringify(saveData);
@@ -1394,6 +1753,15 @@ function load(saveData) {
             villageGame.map = data.map;
         }
 
+        // Restore upgrades (version 2+)
+        if (data.upgrades) {
+            for (let key in data.upgrades) {
+                if (villageGame.upgrades[key]) {
+                    villageGame.upgrades[key] = data.upgrades[key];
+                }
+            }
+        }
+
         console.log('Game loaded successfully! Save from:', new Date(data.timestamp).toLocaleString());
         return true;
     } catch (e) {
@@ -1442,6 +1810,14 @@ document.addEventListener('DOMContentLoaded', function() {
 
         // Start auto-save
         startAutoSave();
+
+        // Add upgrade tab event listeners
+        document.querySelectorAll('.upgrade-tab').forEach(tab => {
+            tab.addEventListener('click', () => {
+                const category = tab.getAttribute('data-category');
+                filterUpgrades(category);
+            });
+        });
     }, 100);
 });
 
@@ -1562,6 +1938,24 @@ function restoreUnlockedUI() {
     // Update campfire state based on wood consumption
     if (villageGame.global.woodConsumption > 0) {
         villageGame.global.campfireActive = villageGame.resources.wood.owned > 0;
+    }
+
+    // Restore upgrades panel visibility
+    if (villageGame.global.upgradesUnlocked) {
+        const upgradesPanel = document.getElementById('upgradesPanel');
+        if (upgradesPanel) {
+            upgradesPanel.style.display = 'block';
+        }
+
+        // Re-apply all purchased upgrade effects
+        for (let upgradeName in villageGame.upgrades) {
+            if (villageGame.upgrades[upgradeName].purchased) {
+                applyUpgradeEffect(upgradeName);
+            }
+        }
+
+        // Update the upgrades display
+        updateUpgradesDisplay();
     }
 
     console.log('UI state restored from save');

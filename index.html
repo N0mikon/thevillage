@@ -917,8 +917,157 @@
             border-left: 3px solid #e53e3e;
             color: #e2e8f0;
         }
-        
-        
+
+        /* Upgrades Panel Styles */
+        .upgrades-panel {
+            background: linear-gradient(145deg, #1a1f2e, #0f1318);
+            border: 1px solid #2d3748;
+            border-radius: 12px;
+            padding: 12px;
+            margin-top: 8px;
+            display: none;
+        }
+
+        .upgrades-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 12px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid #2d3748;
+        }
+
+        .upgrades-title {
+            font-size: clamp(1rem, 1.2vw, 1.25rem);
+            font-weight: 600;
+            color: #e2e8f0;
+        }
+
+        .upgrades-tabs {
+            display: flex;
+            gap: 4px;
+            margin-bottom: 12px;
+            flex-wrap: wrap;
+        }
+
+        .upgrade-tab {
+            padding: 6px 12px;
+            background: linear-gradient(145deg, #1a1f2e, #0f1318);
+            border: 1px solid #2d3748;
+            border-radius: 6px;
+            color: #a0aec0;
+            font-size: clamp(0.7rem, 0.75vw, 0.875rem);
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .upgrade-tab:hover {
+            background: linear-gradient(145deg, #2d3748, #1a1f2e);
+            color: #e2e8f0;
+        }
+
+        .upgrade-tab.active {
+            background: linear-gradient(145deg, #3182ce, #2c5282);
+            border-color: #4299e1;
+            color: white;
+        }
+
+        .upgrades-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 8px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .upgrade-card {
+            background: linear-gradient(145deg, #1e2433, #141821);
+            border: 1px solid #2d3748;
+            border-radius: 8px;
+            padding: 10px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .upgrade-card:hover:not(.purchased):not(.locked) {
+            border-color: #4299e1;
+            transform: translateY(-2px);
+        }
+
+        .upgrade-card.locked {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .upgrade-card.purchased {
+            background: linear-gradient(145deg, #1a3a2a, #0f2318);
+            border-color: #38a169;
+        }
+
+        .upgrade-card.affordable:not(.purchased) {
+            border-color: #38a169;
+            box-shadow: 0 0 8px rgba(56, 161, 105, 0.3);
+        }
+
+        .upgrade-name {
+            font-size: clamp(0.85rem, 0.9vw, 1rem);
+            font-weight: 600;
+            color: #e2e8f0;
+            margin-bottom: 4px;
+        }
+
+        .upgrade-card.purchased .upgrade-name::after {
+            content: " ✓";
+            color: #38a169;
+        }
+
+        .upgrade-description {
+            font-size: clamp(0.65rem, 0.7vw, 0.8rem);
+            color: #a0aec0;
+            margin-bottom: 6px;
+        }
+
+        .upgrade-effect {
+            font-size: clamp(0.65rem, 0.7vw, 0.8rem);
+            color: #68d391;
+            margin-bottom: 6px;
+            font-style: italic;
+        }
+
+        .upgrade-cost {
+            font-size: clamp(0.65rem, 0.7vw, 0.8rem);
+            color: #fbbf24;
+        }
+
+        .upgrade-requires {
+            font-size: clamp(0.6rem, 0.65vw, 0.75rem);
+            color: #f56565;
+            margin-top: 4px;
+        }
+
+        .upgrade-tier {
+            display: inline-block;
+            padding: 2px 6px;
+            background: #2d3748;
+            border-radius: 4px;
+            font-size: clamp(0.55rem, 0.6vw, 0.7rem);
+            color: #a0aec0;
+            margin-bottom: 4px;
+        }
+
+        .upgrade-tier.tier-1 { background: #2d3748; }
+        .upgrade-tier.tier-2 { background: #3182ce; }
+        .upgrade-tier.tier-3 { background: #805ad5; }
+        .upgrade-tier.tier-4 { background: #d69e2e; }
+
+        /* Research log message style */
+        .log-message.ResearchMessage {
+            background: rgba(128, 90, 213, 0.15);
+            border-left: 3px solid #805ad5;
+            color: #e2e8f0;
+        }
+
+
         /* Responsive adjustments */
         @media (max-width: 768px) {
             .game-container {
@@ -1419,8 +1568,29 @@
                     <div style="font-size: clamp(0.75rem, 0.8vw, 1rem); margin-top: 4px;">Explorers will reveal the surrounding lands</div>
                 </div>
             </div>
+
+            <!-- Upgrades Panel -->
+            <div class="upgrades-panel" id="upgradesPanel">
+                <div class="upgrades-header">
+                    <div class="upgrades-title">📚 Research</div>
+                    <div style="font-size: clamp(0.7rem, 0.75vw, 0.875rem); color: #a0aec0;">
+                        Knowledge: <span id="upgradeKnowledge">0</span>
+                    </div>
+                </div>
+                <div class="upgrades-tabs">
+                    <button class="upgrade-tab active" data-category="all">All</button>
+                    <button class="upgrade-tab" data-category="production">Production</button>
+                    <button class="upgrade-tab" data-category="exploration">Exploration</button>
+                    <button class="upgrade-tab" data-category="combat">Combat</button>
+                    <button class="upgrade-tab" data-category="economy">Economy</button>
+                    <button class="upgrade-tab" data-category="research">Research</button>
+                </div>
+                <div class="upgrades-grid" id="upgradesGrid">
+                    <!-- Upgrade cards will be dynamically generated -->
+                </div>
+            </div>
         </div>
-        
+
         <!-- Footer -->
         <div class="footer">
             <div style="display: flex; gap: 8px; justify-content: center; width: 100%;">

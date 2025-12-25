@@ -4,19 +4,24 @@
 // Handle peasant attraction from campfires
 function handlePeasantAttraction() {
     if (villageGame.buildings.Campfire.owned === 0) return;
-    
+
     // Only work if campfire is active (has wood to burn)
     if (!villageGame.global.campfireActive) return;
-    
+
     // Check if we're at the peasant cap
     if (villageGame.resources.peasants.owned >= villageGame.resources.peasants.max) {
         // At cap - reset accumulator
         villageGame.global.campfireAccumulator = 0;
         return;
     }
-    
-    // Add to campfire accumulator (1 peasant every 10 seconds = 0.1 per second)
-    villageGame.global.campfireAccumulator += 0.1 / villageGame.settings.speed;
+
+    // Calculate immigration rate with upgrade bonus
+    const upgradeBonus = villageGame.global.upgradeBonus || {};
+    const immigrationBonus = 1 + (upgradeBonus.immigrationRate || 0);
+    const baseRate = 0.1 * villageGame.buildings.Campfire.owned; // 0.1 per second per campfire
+
+    // Add to campfire accumulator with bonus applied
+    villageGame.global.campfireAccumulator += (baseRate * immigrationBonus) / villageGame.settings.speed;
     
     // Check if we've accumulated enough for a whole peasant
     if (villageGame.global.campfireAccumulator >= 1.0) {
@@ -78,6 +83,8 @@ function handleJobProduction() {
     const workEfficiency = villageGame.global.workTimePercentage / 100; // Convert percentage to decimal
     const moraleEfficiency = villageGame.global.morale / 100; // Convert morale to efficiency (0-1)
     const workshopBonus = 1 + (villageGame.global.workshopBonus || 0); // Workshop production bonus
+    const upgradeBonus = villageGame.global.upgradeBonus || {}; // Upgrade bonuses
+    const allProductionBonus = 1 + (upgradeBonus.allProduction || 0); // All production upgrade bonus
 
     for (let jobName in villageGame.jobs) {
         const job = villageGame.jobs[jobName];
@@ -92,8 +99,31 @@ function handleJobProduction() {
                 continue;
             }
 
-            // Production is affected by work time, morale, and workshop bonus
-            const production = (job.owned * job.effectValue * workEfficiency * moraleEfficiency * workshopBonus) / villageGame.settings.speed;
+            // Calculate job-specific upgrade bonus
+            let jobUpgradeBonus = 1;
+            switch (jobName) {
+                case 'Farmer':
+                    jobUpgradeBonus = 1 + (upgradeBonus.farmerProduction || 0);
+                    break;
+                case 'Woodcutter':
+                    jobUpgradeBonus = 1 + (upgradeBonus.woodcutterProduction || 0);
+                    break;
+                case 'Herbalist':
+                    jobUpgradeBonus = 1 + (upgradeBonus.herbalistProduction || 0);
+                    break;
+                case 'Miner':
+                    jobUpgradeBonus = 1 + (upgradeBonus.minerProduction || 0);
+                    break;
+                case 'Scholar':
+                    jobUpgradeBonus = 1 + (upgradeBonus.scholarProduction || 0);
+                    break;
+                case 'Merchant':
+                    jobUpgradeBonus = 1 + (upgradeBonus.merchantProduction || 0);
+                    break;
+            }
+
+            // Production is affected by work time, morale, workshop bonus, and upgrade bonuses
+            const production = (job.owned * job.effectValue * workEfficiency * moraleEfficiency * workshopBonus * allProductionBonus * jobUpgradeBonus) / villageGame.settings.speed;
             villageGame.resources[job.resource].owned += production;
 
             // Check max limits
@@ -318,16 +348,21 @@ function handlePeasantBirthRate() {
 // Handle peasant death rate
 function handlePeasantDeathRate() {
     const totalPeasants = Math.floor(villageGame.resources.peasants.owned);
-    
+
     // Only process death if population >= 20 and peasants exist
     if (totalPeasants >= 20 && totalPeasants > 0) {
         // Base death rate: 1/1000th of integer peasant count per second
         let deathRate = (totalPeasants * villageGame.global.deathRate) / villageGame.settings.speed;
-        
+
         // Reduce death rate based on herbs in storage (0.001/sec per herb)
         const herbsReduction = (villageGame.resources.herbs.owned * 0.001) / villageGame.settings.speed;
         deathRate = Math.max(0, deathRate - herbsReduction);
-        
+
+        // Apply upgrade death rate reduction
+        const upgradeBonus = villageGame.global.upgradeBonus || {};
+        const deathRateReduction = 1 - (upgradeBonus.deathRateReduction || 0);
+        deathRate = deathRate * deathRateReduction;
+
         // Add to death accumulator
         villageGame.global.deathAccumulator += deathRate;
         
@@ -488,17 +523,19 @@ function updatePeoplePanelDisplays() {
     const immigrationRateElements = document.querySelectorAll('.people-rate-value');
     if (immigrationRateElements.length >= 1) {
         let immigrationRate = 0;
-        
+
         // Calculate immigration rate from campfires
         if (villageGame.buildings.Campfire.owned > 0 && villageGame.global.campfireActive) {
             // Check if we're at the peasant cap
             if (villageGame.resources.peasants.owned < villageGame.resources.peasants.max) {
                 // Immigration rate: 0.1 per second per campfire (1 peasant every 10 seconds)
                 // Note: Food check happens when actually adding peasant, not in rate calculation
-                immigrationRate = 0.1 * villageGame.buildings.Campfire.owned;
+                const upgradeBonus = villageGame.global.upgradeBonus || {};
+                const immigrationBonus = 1 + (upgradeBonus.immigrationRate || 0);
+                immigrationRate = 0.1 * villageGame.buildings.Campfire.owned * immigrationBonus;
             }
         }
-        
+
         immigrationRateElements[0].textContent = `+${immigrationRate.toFixed(3)}/sec`;
         immigrationRateElements[0].className = 'people-rate-value positive';
     }
@@ -535,14 +572,19 @@ function updatePeoplePanelDisplays() {
     // Update death rate display (only if unlocked after first death)
     if (immigrationRateElements.length >= 3 && villageGame.global.deathUnlocked) {
         const totalPeasants = Math.floor(villageGame.resources.peasants.owned);
-        
+
         // Base death rate: 1/1000th of integer peasant count per second
         let deathRate = totalPeasants * villageGame.global.deathRate;
-        
+
         // Reduce death rate based on herbs in storage (0.001/sec per herb)
         const herbsReduction = villageGame.resources.herbs.owned * 0.001;
         deathRate = Math.max(0, deathRate - herbsReduction);
-        
+
+        // Apply upgrade death rate reduction
+        const upgradeBonus = villageGame.global.upgradeBonus || {};
+        const deathRateReduction = 1 - (upgradeBonus.deathRateReduction || 0);
+        deathRate = deathRate * deathRateReduction;
+
         immigrationRateElements[2].textContent = `-${deathRate.toFixed(3)}/sec`;
         immigrationRateElements[2].className = 'people-rate-value negative';
     }

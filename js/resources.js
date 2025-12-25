@@ -60,10 +60,12 @@ function getGatherButtonText(what, isGathering) {
 // Simple resource gathering function
 function gatherResources() {
     const what = villageGame.global.playerGathering;
-    
-    // Base gathering rate
-    let amount = 1 / villageGame.settings.speed; // 1 resource per second
-    
+
+    // Base gathering rate with upgrade bonus
+    const upgradeBonus = villageGame.global.upgradeBonus || {};
+    const gatheringSpeedBonus = 1 + (upgradeBonus.gatheringSpeed || 0);
+    let amount = (1 * gatheringSpeedBonus) / villageGame.settings.speed; // 1 resource per second * bonus
+
     // Add resources if gathering
     if (what && villageGame.resources[what]) {
         villageGame.resources[what].owned += amount;
@@ -251,6 +253,11 @@ function updateResourcePerSecondDisplays() {
     const moraleEfficiency = villageGame.global.morale / 100;
     const workshopBonus = 1 + (villageGame.global.workshopBonus || 0);
 
+    // Upgrade bonuses
+    const upgradeBonus = villageGame.global.upgradeBonus || {};
+    const allProductionBonus = 1 + (upgradeBonus.allProduction || 0);
+    const gatheringSpeedBonus = 1 + (upgradeBonus.gatheringSpeed || 0);
+
     // Helper function to format rate display
     function formatRate(rate) {
         if (rate > 0) {
@@ -262,16 +269,37 @@ function updateResourcePerSecondDisplays() {
         }
     }
 
+    // Helper function to get job-specific upgrade bonus
+    function getJobUpgradeBonus(jobName) {
+        switch (jobName) {
+            case 'Farmer':
+                return 1 + (upgradeBonus.farmerProduction || 0);
+            case 'Woodcutter':
+                return 1 + (upgradeBonus.woodcutterProduction || 0);
+            case 'Herbalist':
+                return 1 + (upgradeBonus.herbalistProduction || 0);
+            case 'Miner':
+                return 1 + (upgradeBonus.minerProduction || 0);
+            case 'Scholar':
+                return 1 + (upgradeBonus.scholarProduction || 0);
+            case 'Merchant':
+                return 1 + (upgradeBonus.merchantProduction || 0);
+            default:
+                return 1;
+        }
+    }
+
     // Update food per second
     const foodCard = document.querySelector('[data-resource="food"]');
     if (foodCard) {
         const foodPsElement = foodCard.querySelector('.resource-rate');
         if (foodPsElement) {
             let foodPerSec = 0;
-            if (villageGame.global.playerGathering === 'food') foodPerSec += 1;
+            if (villageGame.global.playerGathering === 'food') foodPerSec += 1 * gatheringSpeedBonus;
 
-            // Apply work time efficiency, morale, and workshop bonus to farmer production
-            foodPerSec += villageGame.jobs.Farmer.owned * villageGame.jobs.Farmer.effectValue * workEfficiency * moraleEfficiency * workshopBonus;
+            // Apply work time efficiency, morale, workshop bonus, and upgrade bonuses to farmer production
+            const farmerBonus = getJobUpgradeBonus('Farmer');
+            foodPerSec += villageGame.jobs.Farmer.owned * villageGame.jobs.Farmer.effectValue * workEfficiency * moraleEfficiency * workshopBonus * allProductionBonus * farmerBonus;
 
             // Subtract peasant food consumption
             const totalPeasants = villageGame.resources.peasants.owned;
@@ -287,10 +315,11 @@ function updateResourcePerSecondDisplays() {
         const woodPsElement = woodCard.querySelector('.resource-rate');
         if (woodPsElement) {
             let woodPerSec = 0;
-            if (villageGame.global.playerGathering === 'wood') woodPerSec += 1;
+            if (villageGame.global.playerGathering === 'wood') woodPerSec += 1 * gatheringSpeedBonus;
 
-            // Apply work time efficiency, morale, and workshop bonus to woodcutter production
-            woodPerSec += villageGame.jobs.Woodcutter.owned * villageGame.jobs.Woodcutter.effectValue * workEfficiency * moraleEfficiency * workshopBonus;
+            // Apply work time efficiency, morale, workshop bonus, and upgrade bonuses to woodcutter production
+            const woodcutterBonus = getJobUpgradeBonus('Woodcutter');
+            woodPerSec += villageGame.jobs.Woodcutter.owned * villageGame.jobs.Woodcutter.effectValue * workEfficiency * moraleEfficiency * workshopBonus * allProductionBonus * woodcutterBonus;
 
             // Subtract campfire consumption
             if (villageGame.global.woodConsumption > 0 && villageGame.global.campfireActive) {
@@ -307,10 +336,11 @@ function updateResourcePerSecondDisplays() {
         const herbsPsElement = herbsCard.querySelector('.resource-rate');
         if (herbsPsElement) {
             let herbsPerSec = 0;
-            if (villageGame.global.playerGathering === 'herbs') herbsPerSec += 1;
+            if (villageGame.global.playerGathering === 'herbs') herbsPerSec += 1 * gatheringSpeedBonus;
 
-            // Apply work time efficiency, morale, and workshop bonus to herbalist production
-            herbsPerSec += villageGame.jobs.Herbalist.owned * villageGame.jobs.Herbalist.effectValue * workEfficiency * moraleEfficiency * workshopBonus;
+            // Apply work time efficiency, morale, workshop bonus, and upgrade bonuses to herbalist production
+            const herbalistBonus = getJobUpgradeBonus('Herbalist');
+            herbsPerSec += villageGame.jobs.Herbalist.owned * villageGame.jobs.Herbalist.effectValue * workEfficiency * moraleEfficiency * workshopBonus * allProductionBonus * herbalistBonus;
 
             herbsPsElement.textContent = formatRate(herbsPerSec);
         }
@@ -322,7 +352,7 @@ function updateResourcePerSecondDisplays() {
         const ironPsElement = ironCard.querySelector('.resource-rate');
         if (ironPsElement) {
             let ironPerSec = 0;
-            if (villageGame.global.playerGathering === 'iron') ironPerSec += 1;
+            if (villageGame.global.playerGathering === 'iron') ironPerSec += 1 * gatheringSpeedBonus;
 
             ironPsElement.textContent = formatRate(ironPerSec);
         }
@@ -334,11 +364,12 @@ function updateResourcePerSecondDisplays() {
         const metalPsElement = metalCard.querySelector('.resource-rate');
         if (metalPsElement) {
             let metalPerSec = 0;
-            if (villageGame.global.playerGathering === 'metal') metalPerSec += 1;
+            if (villageGame.global.playerGathering === 'metal') metalPerSec += 1 * gatheringSpeedBonus;
 
-            // Add Miner production with workshop bonus
+            // Add Miner production with workshop bonus and upgrade bonuses
             if (villageGame.jobs.Miner) {
-                metalPerSec += villageGame.jobs.Miner.owned * villageGame.jobs.Miner.effectValue * workEfficiency * moraleEfficiency * workshopBonus;
+                const minerBonus = getJobUpgradeBonus('Miner');
+                metalPerSec += villageGame.jobs.Miner.owned * villageGame.jobs.Miner.effectValue * workEfficiency * moraleEfficiency * workshopBonus * allProductionBonus * minerBonus;
             }
 
             metalPsElement.textContent = formatRate(metalPerSec);
@@ -351,11 +382,12 @@ function updateResourcePerSecondDisplays() {
         const sciencePsElement = scienceCard.querySelector('.resource-rate');
         if (sciencePsElement) {
             let sciencePerSec = 0;
-            if (villageGame.global.playerGathering === 'science') sciencePerSec += 1;
+            if (villageGame.global.playerGathering === 'science') sciencePerSec += 1 * gatheringSpeedBonus;
 
-            // Add Scholar production with workshop bonus
+            // Add Scholar production with workshop bonus and upgrade bonuses
             if (villageGame.jobs.Scholar) {
-                sciencePerSec += villageGame.jobs.Scholar.owned * villageGame.jobs.Scholar.effectValue * workEfficiency * moraleEfficiency * workshopBonus;
+                const scholarBonus = getJobUpgradeBonus('Scholar');
+                sciencePerSec += villageGame.jobs.Scholar.owned * villageGame.jobs.Scholar.effectValue * workEfficiency * moraleEfficiency * workshopBonus * allProductionBonus * scholarBonus;
             }
 
             sciencePsElement.textContent = formatRate(sciencePerSec);
@@ -368,11 +400,12 @@ function updateResourcePerSecondDisplays() {
         const gemsPsElement = gemsCard.querySelector('.resource-rate');
         if (gemsPsElement) {
             let gemsPerSec = 0;
-            if (villageGame.global.playerGathering === 'gems') gemsPerSec += 1;
+            if (villageGame.global.playerGathering === 'gems') gemsPerSec += 1 * gatheringSpeedBonus;
 
-            // Add Merchant production with workshop bonus
+            // Add Merchant production with workshop bonus and upgrade bonuses
             if (villageGame.jobs.Merchant) {
-                gemsPerSec += villageGame.jobs.Merchant.owned * villageGame.jobs.Merchant.effectValue * workEfficiency * moraleEfficiency * workshopBonus;
+                const merchantBonus = getJobUpgradeBonus('Merchant');
+                gemsPerSec += villageGame.jobs.Merchant.owned * villageGame.jobs.Merchant.effectValue * workEfficiency * moraleEfficiency * workshopBonus * allProductionBonus * merchantBonus;
             }
 
             gemsPsElement.textContent = formatRate(gemsPerSec);
