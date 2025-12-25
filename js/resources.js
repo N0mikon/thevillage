@@ -307,7 +307,7 @@ function updateResourcePerSecondDisplays() {
 
             // Subtract peasant food consumption
             const totalPeasants = villageGame.resources.peasants.owned;
-            foodPerSec -= totalPeasants * 0.5; // 0.5 food per second per peasant
+            foodPerSec -= totalPeasants * 0.25; // 0.25 food per second per peasant
 
             foodPsElement.textContent = formatRate(foodPerSec);
         }

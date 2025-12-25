@@ -269,7 +269,7 @@ function checkPopulationMilestones() {
 function handlePeasantFoodConsumption() {
     const totalPeasants = villageGame.resources.peasants.owned;
     if (totalPeasants > 0) {
-        const foodConsumption = (totalPeasants * 0.5) / villageGame.settings.speed; // 0.5 food per second per peasant
+        const foodConsumption = (totalPeasants * 0.25) / villageGame.settings.speed; // 0.25 food per second per peasant
         villageGame.resources.food.owned -= foodConsumption;
         
         // Don't go below 0
