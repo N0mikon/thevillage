@@ -77,24 +77,34 @@ function handlePeasantAttraction() {
 function handleJobProduction() {
     const workEfficiency = villageGame.global.workTimePercentage / 100; // Convert percentage to decimal
     const moraleEfficiency = villageGame.global.morale / 100; // Convert morale to efficiency (0-1)
-    
+    const workshopBonus = 1 + (villageGame.global.workshopBonus || 0); // Workshop production bonus
+
     for (let jobName in villageGame.jobs) {
         const job = villageGame.jobs[jobName];
         if (job.owned > 0) {
-            // Production is affected by both work time and morale
-            // Higher morale = more efficient workers
-            const production = (job.owned * job.effectValue * workEfficiency * moraleEfficiency) / villageGame.settings.speed;
+            // Skip jobs that don't produce resources (exploration, combat)
+            if (job.resource === 'exploration' || job.resource === 'combat') {
+                continue;
+            }
+
+            // Check if the resource exists
+            if (!villageGame.resources[job.resource]) {
+                continue;
+            }
+
+            // Production is affected by work time, morale, and workshop bonus
+            const production = (job.owned * job.effectValue * workEfficiency * moraleEfficiency * workshopBonus) / villageGame.settings.speed;
             villageGame.resources[job.resource].owned += production;
-            
+
             // Check max limits
-            if (villageGame.resources[job.resource].max > 0 && 
+            if (villageGame.resources[job.resource].max > 0 &&
                 villageGame.resources[job.resource].owned > villageGame.resources[job.resource].max) {
                 villageGame.resources[job.resource].owned = villageGame.resources[job.resource].max;
             }
-            
+
             // Check for building unlocks
             checkResourceUnlocks(job.resource);
-            
+
             // Update display
             updateResourceDisplay(job.resource);
         }
@@ -126,25 +136,99 @@ function checkPopulationMilestones() {
         addMessage("As your village reaches 30 people, the villagers begin to wonder what lies beyond the familiar forest. 'There must be more to this world than what we can see from here,' they say. 'We should send someone to explore the unknown lands!'", "Story");
         addMessage("Explorer Job Unlocked", "Unlock");
         addMessage("Expedition Panel Unlocked", "Unlock");
-        
+
         // Unlock Explorer job
         villageGame.jobs.Explorer.unlocked = true;
-        
+
         // Show explorer job in UI
         const explorerElement = document.querySelector('[data-job="Explorer"]');
         if (explorerElement) {
             explorerElement.style.display = 'block';
         }
-        
+
         // Show expedition panel
         const expeditionPanel = document.getElementById('expeditionPanel');
         if (expeditionPanel) {
             expeditionPanel.style.display = 'block';
         }
-        
+
         // Update building filter to show jobs
         if (typeof window.filterBuildingItems === 'function') {
             window.filterBuildingItems('all');
+        }
+    }
+
+    // Check for population 40 milestone - Quarry unlock
+    if (currentPopulation >= 40 && !villageGame.global.quarryUnlocked) {
+        villageGame.global.quarryUnlocked = true;
+        villageGame.buildings.Quarry.unlocked = true;
+        addMessage("With your growing population, the villagers realize they need stronger materials for construction. 'We should dig into the nearby hills for stone,' suggests an elder. The idea of building a quarry takes hold.", "Story");
+        addMessage("Quarry Unlocked", "Unlock");
+
+        // Show stone resource
+        showResource('metal');
+
+        const quarryElement = document.querySelector('[data-building="Quarry"]');
+        if (quarryElement) {
+            quarryElement.style.display = 'block';
+        }
+    }
+
+    // Check for population 50 milestone - Workshop unlock
+    if (currentPopulation >= 50 && !villageGame.global.workshopUnlocked) {
+        villageGame.global.workshopUnlocked = true;
+        villageGame.buildings.Workshop.unlocked = true;
+        addMessage("As your village grows to 50 people, skilled craftsmen emerge among your population. 'We could improve our tools and techniques,' they suggest. 'A proper workshop would make everyone more productive!'", "Story");
+        addMessage("Workshop Unlocked", "Unlock");
+
+        const workshopElement = document.querySelector('[data-building="Workshop"]');
+        if (workshopElement) {
+            workshopElement.style.display = 'block';
+        }
+    }
+
+    // Check for population 75 milestone - Library unlock
+    if (currentPopulation >= 75 && !villageGame.global.libraryUnlocked) {
+        villageGame.global.libraryUnlocked = true;
+        villageGame.buildings.Library.unlocked = true;
+        addMessage("Your thriving village of 75 souls begins to seek wisdom beyond mere survival. 'Knowledge is power,' declares a traveling sage. 'Build a library, and your people will grow wise.'", "Story");
+        addMessage("Library Unlocked", "Unlock");
+
+        // Show knowledge resource
+        showResource('science');
+
+        const libraryElement = document.querySelector('[data-building="Library"]');
+        if (libraryElement) {
+            libraryElement.style.display = 'block';
+        }
+    }
+
+    // Check for population 100 milestone - Market unlock
+    if (currentPopulation >= 100 && !villageGame.global.marketUnlocked) {
+        villageGame.global.marketUnlocked = true;
+        villageGame.buildings.Market.unlocked = true;
+        addMessage("With 100 people now calling your village home, the need for organized trade becomes apparent. Merchants from distant lands have heard of your prosperity and wish to establish trade routes.", "Story");
+        addMessage("Market Unlocked", "Unlock");
+
+        // Show gold resource
+        showResource('gems');
+
+        const marketElement = document.querySelector('[data-building="Market"]');
+        if (marketElement) {
+            marketElement.style.display = 'block';
+        }
+    }
+
+    // Check for population 150 milestone - Temple unlock
+    if (currentPopulation >= 150 && !villageGame.global.templeUnlocked) {
+        villageGame.global.templeUnlocked = true;
+        villageGame.buildings.Temple.unlocked = true;
+        addMessage("Your great village of 150 people seeks spiritual guidance. The elders gather and speak of building a temple to the gods, hoping to bring blessings upon the community.", "Story");
+        addMessage("Temple Unlocked", "Unlock");
+
+        const templeElement = document.querySelector('[data-building="Temple"]');
+        if (templeElement) {
+            templeElement.style.display = 'block';
         }
     }
 }
@@ -507,17 +591,20 @@ function updateMorale() {
     // At 50% work time: +25% morale bonus
     // At 0% work time: +50% morale bonus
     const workTimeBonus = (100 - workTime) * 0.5;
-    
-    // Final morale = base morale + work time bonus, capped at 150%
-    villageGame.global.morale = Math.min(150, baseMorale + workTimeBonus);
-    
+
+    // Temple bonus: each temple adds 15% to morale
+    const templeBonus = villageGame.global.templeBonus || 0;
+
+    // Final morale = base morale + work time bonus + temple bonus, capped at 200%
+    villageGame.global.morale = Math.min(200, baseMorale + workTimeBonus + templeBonus);
+
     // Update morale display
     const moraleValueElement = document.getElementById('moraleValue');
     if (moraleValueElement) {
         moraleValueElement.textContent = Math.round(villageGame.global.morale);
     }
-    
-    console.log("Morale updated to:", Math.round(villageGame.global.morale) + "% (Population:", currentPopulation + ", Work Time:", workTime + "%)");
+
+    console.log("Morale updated to:", Math.round(villageGame.global.morale) + "% (Population:", currentPopulation + ", Work Time:", workTime + "%, Temple:", templeBonus + "%)");
 }
 
 

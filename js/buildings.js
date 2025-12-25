@@ -77,18 +77,88 @@ function buyBuilding(buildingName) {
     } else if (buildingName === 'HerbGarden') {
         // Increase herb storage capacity by 75
         villageGame.resources.herbs.max += building.effectValue;
-        
+
         // First time story
         if (building.owned === 1) {
             addMessage("The herb garden provides a dedicated space for cultivating and storing medicinal herbs. Your herbalists can now grow and preserve their healing plants more effectively.", "Construction");
         }
+    } else if (buildingName === 'Quarry') {
+        // Increase stone storage capacity by 100
+        villageGame.resources.metal.max += building.effectValue;
+
+        // First quarry unlocks Miner job
+        if (building.owned === 1) {
+            villageGame.jobs.Miner.unlocked = true;
+            addMessage("The quarry begins operations, revealing veins of stone in the hillside. Workers with strong arms step forward, eager to become miners.", "Construction");
+            addMessage("Miner Job Unlocked", "Unlock");
+
+            const minerElement = document.querySelector('[data-job="Miner"]');
+            if (minerElement) {
+                minerElement.style.display = 'block';
+            }
+        }
+    } else if (buildingName === 'Workshop') {
+        // Increase production bonus by 10%
+        villageGame.global.workshopBonus += building.effectValue;
+
+        // First time story
+        if (building.owned === 1) {
+            addMessage("The workshop hums with activity as craftsmen sharpen tools and improve techniques. All workers in the village become more productive!", "Construction");
+        }
+    } else if (buildingName === 'Library') {
+        // First library unlocks Scholar job
+        if (building.owned === 1) {
+            villageGame.jobs.Scholar.unlocked = true;
+            addMessage("The library's shelves fill with scrolls and tomes. Learned individuals gather to study and share knowledge. A new path to wisdom opens.", "Construction");
+            addMessage("Scholar Job Unlocked", "Unlock");
+
+            const scholarElement = document.querySelector('[data-job="Scholar"]');
+            if (scholarElement) {
+                scholarElement.style.display = 'block';
+            }
+        }
+    } else if (buildingName === 'Market') {
+        // First market unlocks Merchant job
+        if (building.owned === 1) {
+            villageGame.jobs.Merchant.unlocked = true;
+            addMessage("The marketplace bustles with activity! Traders set up stalls and merchants arrive from distant lands. Gold begins to flow into your village.", "Construction");
+            addMessage("Merchant Job Unlocked", "Unlock");
+
+            const merchantElement = document.querySelector('[data-job="Merchant"]');
+            if (merchantElement) {
+                merchantElement.style.display = 'block';
+            }
+        }
+    } else if (buildingName === 'Temple') {
+        // Increase morale bonus by 15%
+        villageGame.global.templeBonus += building.effectValue;
+
+        // First time story
+        if (building.owned === 1) {
+            addMessage("The temple rises majestically, its spire reaching toward the heavens. The villagers gather to pray and find peace. Morale throughout the village improves.", "Construction");
+        }
+    } else if (buildingName === 'Barracks') {
+        // First barracks unlocks Soldier job
+        if (building.owned === 1) {
+            villageGame.jobs.Soldier.unlocked = true;
+            addMessage("The barracks stands ready to train defenders. Brave villagers volunteer to become soldiers and protect the village from the monsters lurking in the wilderness.", "Construction");
+            addMessage("Soldier Job Unlocked", "Unlock");
+
+            const soldierElement = document.querySelector('[data-job="Soldier"]');
+            if (soldierElement) {
+                soldierElement.style.display = 'block';
+            }
+
+            // Show iron resource if not already shown
+            showResource('iron');
+        }
     }
-    
+
     // Update displays
     updateAllDisplays();
     updateResourcePerSecondDisplays();
     addMessage(`Built ${buildingName}! ${building.description}`, "Construction");
-    
+
     return true;
 }
 
@@ -109,7 +179,12 @@ function assignJob(jobName) {
     }
     
     // Check if we have unemployed peasants available
-    const totalEmployed = villageGame.jobs.Farmer.owned + villageGame.jobs.Woodcutter.owned + villageGame.jobs.Herbalist.owned + villageGame.jobs.Explorer.owned;
+    let totalEmployed = 0;
+    for (let jobKey in villageGame.jobs) {
+        totalEmployed += villageGame.jobs[jobKey].owned || 0;
+    }
+    // Also count expedition party members
+    totalEmployed += villageGame.global.expeditionPartySize || 0;
     const totalPeasants = Math.floor(villageGame.resources.peasants.owned);
     const unemployed = totalPeasants - totalEmployed;
     
@@ -141,9 +216,11 @@ function assignJob(jobName) {
             addMessage("The first herbalist begins gathering medicinal herbs and creating healing remedies for the village.", "Villagers");
         } else if (jobName === 'Explorer') {
             addMessage("The first explorer sets out into the unknown wilderness, eager to discover what lies beyond the familiar forest.", "Villagers");
+        } else if (jobName === 'Soldier') {
+            addMessage("The first soldier takes up arms to defend the village. With proper training, they will protect your people from monsters.", "Villagers");
         }
     }
-    
+
     return true;
 }
 
@@ -241,7 +318,7 @@ function updateBuildingDisplays() {
     if (herbGardenOwnedElement) {
         herbGardenOwnedElement.textContent = `Owned: ${villageGame.buildings.HerbGarden.owned}`;
     }
-    
+
     // Update Herb Garden cost
     const herbGardenCostElement = document.querySelector('[data-building="HerbGarden"] .building-cost');
     if (herbGardenCostElement) {
@@ -249,11 +326,107 @@ function updateBuildingDisplays() {
         const herbsCost = villageGame.buildings.HerbGarden.cost.herbs;
         herbGardenCostElement.textContent = `Cost: ${woodCost} Wood, ${herbsCost} Herbs`;
     }
-    
+
     // Show/hide Herb Garden based on unlock status
     const herbGardenElement = document.querySelector('[data-building="HerbGarden"]');
     if (herbGardenElement) {
         herbGardenElement.style.display = villageGame.buildings.HerbGarden.unlocked ? 'block' : 'none';
+    }
+
+    // Update Quarry
+    if (villageGame.buildings.Quarry) {
+        const quarryOwnedElement = document.querySelector('[data-building="Quarry"] .building-owned');
+        if (quarryOwnedElement) {
+            quarryOwnedElement.textContent = `Owned: ${villageGame.buildings.Quarry.owned}`;
+        }
+        const quarryCostElement = document.querySelector('[data-building="Quarry"] .building-cost');
+        if (quarryCostElement) {
+            quarryCostElement.textContent = `Cost: ${villageGame.buildings.Quarry.cost.wood} Wood, ${villageGame.buildings.Quarry.cost.food} Food`;
+        }
+        const quarryElement = document.querySelector('[data-building="Quarry"]');
+        if (quarryElement) {
+            quarryElement.style.display = villageGame.buildings.Quarry.unlocked ? 'block' : 'none';
+        }
+    }
+
+    // Update Workshop
+    if (villageGame.buildings.Workshop) {
+        const workshopOwnedElement = document.querySelector('[data-building="Workshop"] .building-owned');
+        if (workshopOwnedElement) {
+            workshopOwnedElement.textContent = `Owned: ${villageGame.buildings.Workshop.owned}`;
+        }
+        const workshopCostElement = document.querySelector('[data-building="Workshop"] .building-cost');
+        if (workshopCostElement) {
+            workshopCostElement.textContent = `Cost: ${villageGame.buildings.Workshop.cost.wood} Wood, ${villageGame.buildings.Workshop.cost.metal} Stone`;
+        }
+        const workshopElement = document.querySelector('[data-building="Workshop"]');
+        if (workshopElement) {
+            workshopElement.style.display = villageGame.buildings.Workshop.unlocked ? 'block' : 'none';
+        }
+    }
+
+    // Update Library
+    if (villageGame.buildings.Library) {
+        const libraryOwnedElement = document.querySelector('[data-building="Library"] .building-owned');
+        if (libraryOwnedElement) {
+            libraryOwnedElement.textContent = `Owned: ${villageGame.buildings.Library.owned}`;
+        }
+        const libraryCostElement = document.querySelector('[data-building="Library"] .building-cost');
+        if (libraryCostElement) {
+            libraryCostElement.textContent = `Cost: ${villageGame.buildings.Library.cost.wood} Wood, ${villageGame.buildings.Library.cost.metal} Stone`;
+        }
+        const libraryElement = document.querySelector('[data-building="Library"]');
+        if (libraryElement) {
+            libraryElement.style.display = villageGame.buildings.Library.unlocked ? 'block' : 'none';
+        }
+    }
+
+    // Update Market
+    if (villageGame.buildings.Market) {
+        const marketOwnedElement = document.querySelector('[data-building="Market"] .building-owned');
+        if (marketOwnedElement) {
+            marketOwnedElement.textContent = `Owned: ${villageGame.buildings.Market.owned}`;
+        }
+        const marketCostElement = document.querySelector('[data-building="Market"] .building-cost');
+        if (marketCostElement) {
+            marketCostElement.textContent = `Cost: ${villageGame.buildings.Market.cost.wood} Wood, ${villageGame.buildings.Market.cost.food} Food, ${villageGame.buildings.Market.cost.metal} Stone`;
+        }
+        const marketElement = document.querySelector('[data-building="Market"]');
+        if (marketElement) {
+            marketElement.style.display = villageGame.buildings.Market.unlocked ? 'block' : 'none';
+        }
+    }
+
+    // Update Temple
+    if (villageGame.buildings.Temple) {
+        const templeOwnedElement = document.querySelector('[data-building="Temple"] .building-owned');
+        if (templeOwnedElement) {
+            templeOwnedElement.textContent = `Owned: ${villageGame.buildings.Temple.owned}`;
+        }
+        const templeCostElement = document.querySelector('[data-building="Temple"] .building-cost');
+        if (templeCostElement) {
+            templeCostElement.textContent = `Cost: ${villageGame.buildings.Temple.cost.wood} Wood, ${villageGame.buildings.Temple.cost.metal} Stone, ${villageGame.buildings.Temple.cost.science} Knowledge`;
+        }
+        const templeElement = document.querySelector('[data-building="Temple"]');
+        if (templeElement) {
+            templeElement.style.display = villageGame.buildings.Temple.unlocked ? 'block' : 'none';
+        }
+    }
+
+    // Update Barracks
+    if (villageGame.buildings.Barracks) {
+        const barracksOwnedElement = document.querySelector('[data-building="Barracks"] .building-owned');
+        if (barracksOwnedElement) {
+            barracksOwnedElement.textContent = `Owned: ${villageGame.buildings.Barracks.owned}`;
+        }
+        const barracksCostElement = document.querySelector('[data-building="Barracks"] .building-cost');
+        if (barracksCostElement) {
+            barracksCostElement.textContent = `Cost: ${villageGame.buildings.Barracks.cost.wood} Wood, ${villageGame.buildings.Barracks.cost.metal} Stone, ${villageGame.buildings.Barracks.cost.iron} Iron`;
+        }
+        const barracksElement = document.querySelector('[data-building="Barracks"]');
+        if (barracksElement) {
+            barracksElement.style.display = villageGame.buildings.Barracks.unlocked ? 'block' : 'none';
+        }
     }
 }
 
@@ -298,7 +471,51 @@ function updateJobDisplays() {
             explorerOwnedElement.textContent = `Assigned: ${villageGame.jobs.Explorer.owned}`;
         }
     }
-    
+
+    // Update miner display
+    if (villageGame.jobs.Miner) {
+        const minerElement = document.querySelector('[data-job="Miner"]');
+        if (minerElement) {
+            const minerOwnedElement = minerElement.querySelector('.building-owned');
+            if (minerOwnedElement) {
+                minerOwnedElement.textContent = `Assigned: ${villageGame.jobs.Miner.owned}`;
+            }
+        }
+    }
+
+    // Update scholar display
+    if (villageGame.jobs.Scholar) {
+        const scholarElement = document.querySelector('[data-job="Scholar"]');
+        if (scholarElement) {
+            const scholarOwnedElement = scholarElement.querySelector('.building-owned');
+            if (scholarOwnedElement) {
+                scholarOwnedElement.textContent = `Assigned: ${villageGame.jobs.Scholar.owned}`;
+            }
+        }
+    }
+
+    // Update merchant display
+    if (villageGame.jobs.Merchant) {
+        const merchantElement = document.querySelector('[data-job="Merchant"]');
+        if (merchantElement) {
+            const merchantOwnedElement = merchantElement.querySelector('.building-owned');
+            if (merchantOwnedElement) {
+                merchantOwnedElement.textContent = `Assigned: ${villageGame.jobs.Merchant.owned}`;
+            }
+        }
+    }
+
+    // Update soldier display
+    if (villageGame.jobs.Soldier) {
+        const soldierElement = document.querySelector('[data-job="Soldier"]');
+        if (soldierElement) {
+            const soldierOwnedElement = soldierElement.querySelector('.building-owned');
+            if (soldierOwnedElement) {
+                soldierOwnedElement.textContent = `Assigned: ${villageGame.jobs.Soldier.owned}`;
+            }
+        }
+    }
+
     // Update building filter to reflect current unlock status
     if (typeof window.filterBuildingItems === 'function') {
         // Get current active tab
@@ -306,7 +523,7 @@ function updateJobDisplays() {
         const currentFilter = activeTab ? activeTab.getAttribute('data-filter') : 'all';
         window.filterBuildingItems(currentFilter);
     }
-    
+
     // Resource per second displays are updated by updateAllDisplays()
 }
 

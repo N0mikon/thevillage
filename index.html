@@ -1090,8 +1090,80 @@
                             <div class="building-cost">Cost: 40 Wood, 10 Herbs</div>
                         </div>
                     </div>
+
+                    <div class="building-item" data-building="Quarry" data-type="building" style="display: none;">
+                        <div class="building-info">
+                            <div class="building-name">Quarry</div>
+                            <div class="building-description">Increases stone storage by 100, unlocks Miner job</div>
+                        </div>
+                        <div class="building-actions">
+                            <div class="building-owned">Owned: 0</div>
+                            <button class="building-button">Build</button>
+                            <div class="building-cost">Cost: 150 Wood, 50 Food</div>
+                        </div>
+                    </div>
+
+                    <div class="building-item" data-building="Workshop" data-type="building" style="display: none;">
+                        <div class="building-info">
+                            <div class="building-name">Workshop</div>
+                            <div class="building-description">Increases all job production by 10%</div>
+                        </div>
+                        <div class="building-actions">
+                            <div class="building-owned">Owned: 0</div>
+                            <button class="building-button">Build</button>
+                            <div class="building-cost">Cost: 200 Wood, 25 Stone</div>
+                        </div>
+                    </div>
+
+                    <div class="building-item" data-building="Library" data-type="building" style="display: none;">
+                        <div class="building-info">
+                            <div class="building-name">Library</div>
+                            <div class="building-description">Unlocks Scholar job and stores knowledge</div>
+                        </div>
+                        <div class="building-actions">
+                            <div class="building-owned">Owned: 0</div>
+                            <button class="building-button">Build</button>
+                            <div class="building-cost">Cost: 300 Wood, 50 Stone</div>
+                        </div>
+                    </div>
+
+                    <div class="building-item" data-building="Market" data-type="building" style="display: none;">
+                        <div class="building-info">
+                            <div class="building-name">Market</div>
+                            <div class="building-description">Unlocks Merchant job and enables trading</div>
+                        </div>
+                        <div class="building-actions">
+                            <div class="building-owned">Owned: 0</div>
+                            <button class="building-button">Build</button>
+                            <div class="building-cost">Cost: 400 Wood, 100 Food, 50 Stone</div>
+                        </div>
+                    </div>
+
+                    <div class="building-item" data-building="Temple" data-type="building" style="display: none;">
+                        <div class="building-info">
+                            <div class="building-name">Temple</div>
+                            <div class="building-description">Increases base morale by 15%</div>
+                        </div>
+                        <div class="building-actions">
+                            <div class="building-owned">Owned: 0</div>
+                            <button class="building-button">Build</button>
+                            <div class="building-cost">Cost: 500 Wood, 100 Stone, 25 Knowledge</div>
+                        </div>
+                    </div>
+
+                    <div class="building-item" data-building="Barracks" data-type="building" style="display: none;">
+                        <div class="building-info">
+                            <div class="building-name">Barracks</div>
+                            <div class="building-description">Unlocks Soldier job and combat</div>
+                        </div>
+                        <div class="building-actions">
+                            <div class="building-owned">Owned: 0</div>
+                            <button class="building-button">Build</button>
+                            <div class="building-cost">Cost: 250 Wood, 75 Stone, 25 Iron</div>
+                        </div>
+                    </div>
                 </div>
-                
+
                 <!-- Jobs Container -->
                 <div class="jobs-container">
                     <div class="building-item" data-job="Farmer" data-type="job" style="display: none;">
@@ -1143,6 +1215,66 @@
                         <div class="building-info">
                             <div class="building-name">Explorer</div>
                             <div class="building-description">Hires explorers available for expedition teams</div>
+                        </div>
+                        <div class="building-actions">
+                            <div class="building-owned">Assigned: 0</div>
+                            <div class="job-buttons">
+                                <button class="building-button job job-plus" data-action="assign">+</button>
+                                <button class="building-button job job-minus" data-action="remove">-</button>
+                            </div>
+                            <div class="building-cost">Cost: 1 Peasant</div>
+                        </div>
+                    </div>
+
+                    <div class="building-item" data-job="Miner" data-type="job" style="display: none;">
+                        <div class="building-info">
+                            <div class="building-name">Miner</div>
+                            <div class="building-description">Produces 1 Stone/sec per miner</div>
+                        </div>
+                        <div class="building-actions">
+                            <div class="building-owned">Assigned: 0</div>
+                            <div class="job-buttons">
+                                <button class="building-button job job-plus" data-action="assign">+</button>
+                                <button class="building-button job job-minus" data-action="remove">-</button>
+                            </div>
+                            <div class="building-cost">Cost: 1 Peasant</div>
+                        </div>
+                    </div>
+
+                    <div class="building-item" data-job="Scholar" data-type="job" style="display: none;">
+                        <div class="building-info">
+                            <div class="building-name">Scholar</div>
+                            <div class="building-description">Produces 0.5 Knowledge/sec per scholar</div>
+                        </div>
+                        <div class="building-actions">
+                            <div class="building-owned">Assigned: 0</div>
+                            <div class="job-buttons">
+                                <button class="building-button job job-plus" data-action="assign">+</button>
+                                <button class="building-button job job-minus" data-action="remove">-</button>
+                            </div>
+                            <div class="building-cost">Cost: 1 Peasant</div>
+                        </div>
+                    </div>
+
+                    <div class="building-item" data-job="Merchant" data-type="job" style="display: none;">
+                        <div class="building-info">
+                            <div class="building-name">Merchant</div>
+                            <div class="building-description">Produces 0.25 Gold/sec per merchant</div>
+                        </div>
+                        <div class="building-actions">
+                            <div class="building-owned">Assigned: 0</div>
+                            <div class="job-buttons">
+                                <button class="building-button job job-plus" data-action="assign">+</button>
+                                <button class="building-button job job-minus" data-action="remove">-</button>
+                            </div>
+                            <div class="building-cost">Cost: 1 Peasant</div>
+                        </div>
+                    </div>
+
+                    <div class="building-item" data-job="Soldier" data-type="job" style="display: none;">
+                        <div class="building-info">
+                            <div class="building-name">Soldier</div>
+                            <div class="building-description">Provides 10 combat strength per soldier</div>
                         </div>
                         <div class="building-actions">
                             <div class="building-owned">Assigned: 0</div>

@@ -1253,6 +1253,62 @@ function restoreUnlockedUI() {
         if (herbGardenElement) herbGardenElement.style.display = 'block';
     }
 
+    // Restore new building visibility
+    if (villageGame.buildings.Quarry && villageGame.buildings.Quarry.unlocked) {
+        const quarryElement = document.querySelector('[data-building="Quarry"]');
+        if (quarryElement) quarryElement.style.display = 'block';
+        showResource('metal');
+    }
+
+    if (villageGame.buildings.Workshop && villageGame.buildings.Workshop.unlocked) {
+        const workshopElement = document.querySelector('[data-building="Workshop"]');
+        if (workshopElement) workshopElement.style.display = 'block';
+    }
+
+    if (villageGame.buildings.Library && villageGame.buildings.Library.unlocked) {
+        const libraryElement = document.querySelector('[data-building="Library"]');
+        if (libraryElement) libraryElement.style.display = 'block';
+        showResource('science');
+    }
+
+    if (villageGame.buildings.Market && villageGame.buildings.Market.unlocked) {
+        const marketElement = document.querySelector('[data-building="Market"]');
+        if (marketElement) marketElement.style.display = 'block';
+        showResource('gems');
+    }
+
+    if (villageGame.buildings.Temple && villageGame.buildings.Temple.unlocked) {
+        const templeElement = document.querySelector('[data-building="Temple"]');
+        if (templeElement) templeElement.style.display = 'block';
+    }
+
+    if (villageGame.buildings.Barracks && villageGame.buildings.Barracks.unlocked) {
+        const barracksElement = document.querySelector('[data-building="Barracks"]');
+        if (barracksElement) barracksElement.style.display = 'block';
+        showResource('iron');
+    }
+
+    // Restore new job visibility
+    if (villageGame.jobs.Miner && villageGame.jobs.Miner.unlocked) {
+        const minerElement = document.querySelector('[data-job="Miner"]');
+        if (minerElement) minerElement.style.display = 'block';
+    }
+
+    if (villageGame.jobs.Scholar && villageGame.jobs.Scholar.unlocked) {
+        const scholarElement = document.querySelector('[data-job="Scholar"]');
+        if (scholarElement) scholarElement.style.display = 'block';
+    }
+
+    if (villageGame.jobs.Merchant && villageGame.jobs.Merchant.unlocked) {
+        const merchantElement = document.querySelector('[data-job="Merchant"]');
+        if (merchantElement) merchantElement.style.display = 'block';
+    }
+
+    if (villageGame.jobs.Soldier && villageGame.jobs.Soldier.unlocked) {
+        const soldierElement = document.querySelector('[data-job="Soldier"]');
+        if (soldierElement) soldierElement.style.display = 'block';
+    }
+
     // Restore rate display visibility
     if (villageGame.global.birthRateUnlocked) {
         const birthRateElement = document.getElementById('birthRate');

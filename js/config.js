@@ -59,6 +59,60 @@ var villageGame = {
             effect: "Increases herb storage capacity by 75",
             effectValue: 75,
             unlocked: false // Will be unlocked when hitting 50 herbs
+        },
+        Quarry: {
+            owned: 0,
+            baseCost: { wood: 150, food: 50 },
+            cost: { wood: 150, food: 50 },
+            description: "A stone quarry that allows mining operations and increases stone storage capacity.",
+            effect: "Increases stone storage by 100 and unlocks Miner job",
+            effectValue: 100,
+            unlocked: false // Will be unlocked at 40 population
+        },
+        Workshop: {
+            owned: 0,
+            baseCost: { wood: 200, metal: 25 },
+            cost: { wood: 200, metal: 25 },
+            description: "A workshop where craftsmen improve tools and techniques, boosting all production.",
+            effect: "Increases all job production by 10%",
+            effectValue: 0.10,
+            unlocked: false // Will be unlocked at 50 population
+        },
+        Library: {
+            owned: 0,
+            baseCost: { wood: 300, metal: 50 },
+            cost: { wood: 300, metal: 50 },
+            description: "A place of learning where scholars study and accumulate knowledge for the village.",
+            effect: "Unlocks Scholar job and stores knowledge",
+            effectValue: 100,
+            unlocked: false // Will be unlocked at 75 population
+        },
+        Market: {
+            owned: 0,
+            baseCost: { wood: 400, food: 100, metal: 50 },
+            cost: { wood: 400, food: 100, metal: 50 },
+            description: "A bustling marketplace where merchants trade goods and bring gold to the village.",
+            effect: "Unlocks Merchant job and enables trading",
+            effectValue: 1,
+            unlocked: false // Will be unlocked at 100 population
+        },
+        Temple: {
+            owned: 0,
+            baseCost: { wood: 500, metal: 100, science: 25 },
+            cost: { wood: 500, metal: 100, science: 25 },
+            description: "A sacred temple that provides spiritual guidance and boosts village morale.",
+            effect: "Increases base morale by 15%",
+            effectValue: 15,
+            unlocked: false // Will be unlocked at 150 population
+        },
+        Barracks: {
+            owned: 0,
+            baseCost: { wood: 250, metal: 75, iron: 25 },
+            cost: { wood: 250, metal: 75, iron: 25 },
+            description: "A training ground for soldiers to defend the village against monsters.",
+            effect: "Unlocks Soldier job and combat",
+            effectValue: 10,
+            unlocked: false // Will be unlocked when first monster discovered
         }
     },
     jobs: {
@@ -93,6 +147,38 @@ var villageGame = {
             effectValue: 0.1,
             resource: "exploration",
             unlocked: false // Will be unlocked at 30 population
+        },
+        Miner: {
+            owned: 0,
+            description: "Extracts stone from the quarry for construction.",
+            effect: "Produces 1 stone per second per miner",
+            effectValue: 1,
+            resource: "metal",
+            unlocked: false // Will be unlocked when first Quarry is built
+        },
+        Scholar: {
+            owned: 0,
+            description: "Studies ancient texts and accumulates knowledge.",
+            effect: "Produces 0.5 knowledge per second per scholar",
+            effectValue: 0.5,
+            resource: "science",
+            unlocked: false // Will be unlocked when first Library is built
+        },
+        Merchant: {
+            owned: 0,
+            description: "Trades goods with distant lands and brings gold to the village.",
+            effect: "Produces 0.25 gold per second per merchant",
+            effectValue: 0.25,
+            resource: "gems",
+            unlocked: false // Will be unlocked when first Market is built
+        },
+        Soldier: {
+            owned: 0,
+            description: "Defends the village and fights monsters in the wilderness.",
+            effect: "Provides 10 combat strength per soldier",
+            effectValue: 10,
+            resource: "combat",
+            unlocked: false // Will be unlocked when first Barracks is built
         }
     },
     global: {
@@ -125,7 +211,17 @@ var villageGame = {
         expeditionUnlocked: false, // Track if expedition panel has been unlocked
         expeditionPartySize: 0, // Current expedition party size
         maxExpeditionPartySize: 1, // Maximum expedition party size
-        expeditionActive: false // Track if expedition is currently active
+        expeditionActive: false, // Track if expedition is currently active
+        // New building unlock flags
+        quarryUnlocked: false, // Track if quarry has been unlocked (40 population)
+        workshopUnlocked: false, // Track if workshop has been unlocked (50 population)
+        libraryUnlocked: false, // Track if library has been unlocked (75 population)
+        marketUnlocked: false, // Track if market has been unlocked (100 population)
+        templeUnlocked: false, // Track if temple has been unlocked (150 population)
+        barracksUnlocked: false, // Track if barracks has been unlocked (monster discovered)
+        monsterDiscovered: false, // Track if first monster has been discovered
+        workshopBonus: 0, // Total production bonus from workshops (10% per workshop)
+        templeBonus: 0 // Total morale bonus from temples (15% per temple)
     },
     settings: {
         speed: 10 // 10 ticks per second
