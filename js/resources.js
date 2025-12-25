@@ -246,6 +246,22 @@ function updateResourceDisplay(what) {
 
 // Update resource per second displays
 function updateResourcePerSecondDisplays() {
+    // Shared efficiency calculations
+    const workEfficiency = villageGame.global.workTimePercentage / 100;
+    const moraleEfficiency = villageGame.global.morale / 100;
+    const workshopBonus = 1 + (villageGame.global.workshopBonus || 0);
+
+    // Helper function to format rate display
+    function formatRate(rate) {
+        if (rate > 0) {
+            return `+${rate.toFixed(1)}/sec`;
+        } else if (rate < 0) {
+            return `${rate.toFixed(1)}/sec`;
+        } else {
+            return `+0.0/sec`;
+        }
+    }
+
     // Update food per second
     const foodCard = document.querySelector('[data-resource="food"]');
     if (foodCard) {
@@ -253,27 +269,18 @@ function updateResourcePerSecondDisplays() {
         if (foodPsElement) {
             let foodPerSec = 0;
             if (villageGame.global.playerGathering === 'food') foodPerSec += 1;
-            
-            // Apply work time efficiency and morale to farmer production
-            const workEfficiency = villageGame.global.workTimePercentage / 100;
-            const moraleEfficiency = villageGame.global.morale / 100;
-            foodPerSec += villageGame.jobs.Farmer.owned * villageGame.jobs.Farmer.effectValue * workEfficiency * moraleEfficiency;
-            
+
+            // Apply work time efficiency, morale, and workshop bonus to farmer production
+            foodPerSec += villageGame.jobs.Farmer.owned * villageGame.jobs.Farmer.effectValue * workEfficiency * moraleEfficiency * workshopBonus;
+
             // Subtract peasant food consumption
             const totalPeasants = villageGame.resources.peasants.owned;
             foodPerSec -= totalPeasants * 0.5; // 0.5 food per second per peasant
-            
-            // Format the display properly
-            if (foodPerSec > 0) {
-                foodPsElement.textContent = `+${foodPerSec.toFixed(1)}/sec`;
-            } else if (foodPerSec < 0) {
-                foodPsElement.textContent = `${foodPerSec.toFixed(1)}/sec`;
-            } else {
-                foodPsElement.textContent = `+0.0/sec`;
-            }
+
+            foodPsElement.textContent = formatRate(foodPerSec);
         }
     }
-    
+
     // Update wood per second
     const woodCard = document.querySelector('[data-resource="wood"]');
     if (woodCard) {
@@ -281,28 +288,19 @@ function updateResourcePerSecondDisplays() {
         if (woodPsElement) {
             let woodPerSec = 0;
             if (villageGame.global.playerGathering === 'wood') woodPerSec += 1;
-            
-            // Apply work time efficiency and morale to woodcutter production
-            const workEfficiency = villageGame.global.workTimePercentage / 100;
-            const moraleEfficiency = villageGame.global.morale / 100;
-            woodPerSec += villageGame.jobs.Woodcutter.owned * villageGame.jobs.Woodcutter.effectValue * workEfficiency * moraleEfficiency;
-            
+
+            // Apply work time efficiency, morale, and workshop bonus to woodcutter production
+            woodPerSec += villageGame.jobs.Woodcutter.owned * villageGame.jobs.Woodcutter.effectValue * workEfficiency * moraleEfficiency * workshopBonus;
+
             // Subtract campfire consumption
             if (villageGame.global.woodConsumption > 0 && villageGame.global.campfireActive) {
                 woodPerSec -= villageGame.global.woodConsumption;
             }
-            
-            // Format the display properly
-            if (woodPerSec > 0) {
-                woodPsElement.textContent = `+${woodPerSec.toFixed(1)}/sec`;
-            } else if (woodPerSec < 0) {
-                woodPsElement.textContent = `${woodPerSec.toFixed(1)}/sec`;
-            } else {
-                woodPsElement.textContent = `+0.0/sec`;
-            }
+
+            woodPsElement.textContent = formatRate(woodPerSec);
         }
     }
-    
+
     // Update herbs per second
     const herbsCard = document.querySelector('[data-resource="herbs"]');
     if (herbsCard) {
@@ -310,21 +308,14 @@ function updateResourcePerSecondDisplays() {
         if (herbsPsElement) {
             let herbsPerSec = 0;
             if (villageGame.global.playerGathering === 'herbs') herbsPerSec += 1;
-            
-            // Apply work time efficiency and morale to herbalist production
-            const workEfficiency = villageGame.global.workTimePercentage / 100;
-            const moraleEfficiency = villageGame.global.morale / 100;
-            herbsPerSec += villageGame.jobs.Herbalist.owned * villageGame.jobs.Herbalist.effectValue * workEfficiency * moraleEfficiency;
-            
-            // Format the display properly
-            if (herbsPerSec > 0) {
-                herbsPsElement.textContent = `+${herbsPerSec.toFixed(1)}/sec`;
-            } else {
-                herbsPsElement.textContent = `+0.0/sec`;
-            }
+
+            // Apply work time efficiency, morale, and workshop bonus to herbalist production
+            herbsPerSec += villageGame.jobs.Herbalist.owned * villageGame.jobs.Herbalist.effectValue * workEfficiency * moraleEfficiency * workshopBonus;
+
+            herbsPsElement.textContent = formatRate(herbsPerSec);
         }
     }
-    
+
     // Update iron per second
     const ironCard = document.querySelector('[data-resource="iron"]');
     if (ironCard) {
@@ -332,64 +323,59 @@ function updateResourcePerSecondDisplays() {
         if (ironPsElement) {
             let ironPerSec = 0;
             if (villageGame.global.playerGathering === 'iron') ironPerSec += 1;
-            
-            // Format the display properly
-            if (ironPerSec > 0) {
-                ironPsElement.textContent = `+${ironPerSec.toFixed(1)}/sec`;
-            } else {
-                ironPsElement.textContent = `+0.0/sec`;
-            }
+
+            ironPsElement.textContent = formatRate(ironPerSec);
         }
     }
-    
-    // Update metal per second (stone)
+
+    // Update metal per second (stone from Miners)
     const metalCard = document.querySelector('[data-resource="metal"]');
     if (metalCard) {
         const metalPsElement = metalCard.querySelector('.resource-rate');
         if (metalPsElement) {
             let metalPerSec = 0;
             if (villageGame.global.playerGathering === 'metal') metalPerSec += 1;
-            
-            // Format the display properly
-            if (metalPerSec > 0) {
-                metalPsElement.textContent = `+${metalPerSec.toFixed(1)}/sec`;
-            } else {
-                metalPsElement.textContent = `+0.0/sec`;
+
+            // Add Miner production with workshop bonus
+            if (villageGame.jobs.Miner) {
+                metalPerSec += villageGame.jobs.Miner.owned * villageGame.jobs.Miner.effectValue * workEfficiency * moraleEfficiency * workshopBonus;
             }
+
+            metalPsElement.textContent = formatRate(metalPerSec);
         }
     }
-    
-    // Update science per second (knowledge)
+
+    // Update science per second (knowledge from Scholars)
     const scienceCard = document.querySelector('[data-resource="science"]');
     if (scienceCard) {
         const sciencePsElement = scienceCard.querySelector('.resource-rate');
         if (sciencePsElement) {
             let sciencePerSec = 0;
             if (villageGame.global.playerGathering === 'science') sciencePerSec += 1;
-            
-            // Format the display properly
-            if (sciencePerSec > 0) {
-                sciencePsElement.textContent = `+${sciencePerSec.toFixed(1)}/sec`;
-            } else {
-                sciencePsElement.textContent = `+0.0/sec`;
+
+            // Add Scholar production with workshop bonus
+            if (villageGame.jobs.Scholar) {
+                sciencePerSec += villageGame.jobs.Scholar.owned * villageGame.jobs.Scholar.effectValue * workEfficiency * moraleEfficiency * workshopBonus;
             }
+
+            sciencePsElement.textContent = formatRate(sciencePerSec);
         }
     }
-    
-    // Update gems per second (gold)
+
+    // Update gems per second (gold from Merchants)
     const gemsCard = document.querySelector('[data-resource="gems"]');
     if (gemsCard) {
         const gemsPsElement = gemsCard.querySelector('.resource-rate');
         if (gemsPsElement) {
             let gemsPerSec = 0;
             if (villageGame.global.playerGathering === 'gems') gemsPerSec += 1;
-            
-            // Format the display properly
-            if (gemsPerSec > 0) {
-                gemsPsElement.textContent = `+${gemsPerSec.toFixed(1)}/sec`;
-            } else {
-                gemsPsElement.textContent = `+0.0/sec`;
+
+            // Add Merchant production with workshop bonus
+            if (villageGame.jobs.Merchant) {
+                gemsPerSec += villageGame.jobs.Merchant.owned * villageGame.jobs.Merchant.effectValue * workEfficiency * moraleEfficiency * workshopBonus;
             }
+
+            gemsPsElement.textContent = formatRate(gemsPerSec);
         }
     }
 }

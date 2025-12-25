@@ -221,7 +221,12 @@ var villageGame = {
         barracksUnlocked: false, // Track if barracks has been unlocked (monster discovered)
         monsterDiscovered: false, // Track if first monster has been discovered
         workshopBonus: 0, // Total production bonus from workshops (10% per workshop)
-        templeBonus: 0 // Total morale bonus from temples (15% per temple)
+        templeBonus: 0, // Total morale bonus from temples (15% per temple)
+        // Combat system
+        combatStrength: 0, // Total combat strength from soldiers
+        monstersDefeated: 0, // Total monsters defeated
+        bossDefeated: false, // Track if boss has been defeated
+        combatLog: [] // Recent combat log entries
     },
     settings: {
         speed: 10 // 10 ticks per second

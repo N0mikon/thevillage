@@ -255,7 +255,12 @@ function handlePeasantFoodConsumption() {
 // Handle peasant birth rate
 function handlePeasantBirthRate() {
     // Calculate unemployed peasants using integer peasant count
-    const totalEmployed = villageGame.jobs.Farmer.owned + villageGame.jobs.Woodcutter.owned + villageGame.jobs.Herbalist.owned + villageGame.jobs.Explorer.owned;
+    // Count all employed peasants dynamically
+    let totalEmployed = 0;
+    for (let jobKey in villageGame.jobs) {
+        totalEmployed += villageGame.jobs[jobKey].owned || 0;
+    }
+    totalEmployed += villageGame.global.expeditionPartySize || 0;
     const totalPeasants = Math.floor(villageGame.resources.peasants.owned);
     const unemployed = totalPeasants - totalEmployed;
     
@@ -381,9 +386,14 @@ function handlePeasantDeathRate() {
             }
             
             // Check if there are employed peasants to remove from jobs
-            const totalEmployed = villageGame.jobs.Farmer.owned + villageGame.jobs.Woodcutter.owned + villageGame.jobs.Herbalist.owned + villageGame.jobs.Explorer.owned;
+            // Count all employed peasants dynamically
+            let totalEmployed = 0;
+            for (let jobKey in villageGame.jobs) {
+                totalEmployed += villageGame.jobs[jobKey].owned || 0;
+            }
+            totalEmployed += villageGame.global.expeditionPartySize || 0;
             const totalUnemployed = totalPeasants - totalEmployed;
-            
+
             // Determine if the death affects an employed or unemployed peasant
             let deathAffectsEmployed = false;
             if (totalEmployed > 0 && totalUnemployed > 0) {
@@ -395,19 +405,21 @@ function handlePeasantDeathRate() {
                 deathAffectsEmployed = true;
             }
             // If only unemployed exist, deathAffectsEmployed stays false
-            
+
             if (deathAffectsEmployed) {
                 // Death affects an employed peasant - remove from a job
+                // Build available jobs list dynamically
                 const availableJobs = [];
-                if (villageGame.jobs.Farmer.owned > 0) availableJobs.push('Farmer');
-                if (villageGame.jobs.Woodcutter.owned > 0) availableJobs.push('Woodcutter');
-                if (villageGame.jobs.Herbalist.owned > 0) availableJobs.push('Herbalist');
-                if (villageGame.jobs.Explorer.owned > 0) availableJobs.push('Explorer');
-                
+                for (let jobKey in villageGame.jobs) {
+                    if (villageGame.jobs[jobKey].owned > 0) {
+                        availableJobs.push(jobKey);
+                    }
+                }
+
                 // Randomly select a job to remove from
                 const randomJob = availableJobs[Math.floor(Math.random() * availableJobs.length)];
                 villageGame.jobs[randomJob].owned--;
-                
+
                 // Add death message for employed peasant
                 const deathMessages = [
                     `A ${randomJob} has died from natural causes.`,
@@ -421,7 +433,7 @@ function handlePeasantDeathRate() {
                 ];
                 const randomMessage = deathMessages[Math.floor(Math.random() * deathMessages.length)];
                 addMessage(randomMessage, "Death");
-                
+
                 // Update job displays
                 updateJobDisplays();
             } else {
@@ -495,22 +507,27 @@ function updatePeoplePanelDisplays() {
     if (immigrationRateElements.length >= 2 && villageGame.global.birthRateUnlocked) {
         const totalPeasants = Math.floor(villageGame.resources.peasants.owned);
         let birthRate = 0;
-        
+
         // Calculate birth rate (only if unemployed and below cap)
         if (totalPeasants > 0) {
-            const totalEmployed = villageGame.jobs.Farmer.owned + villageGame.jobs.Woodcutter.owned + villageGame.jobs.Herbalist.owned + villageGame.jobs.Explorer.owned;
+            // Count all employed peasants dynamically
+            let totalEmployed = 0;
+            for (let jobKey in villageGame.jobs) {
+                totalEmployed += villageGame.jobs[jobKey].owned || 0;
+            }
+            totalEmployed += villageGame.global.expeditionPartySize || 0;
             const unemployed = totalPeasants - totalEmployed;
-            
+
             if (unemployed > 0 && totalPeasants < villageGame.resources.peasants.max) {
                 // Calculate free time percentage (100 - work time)
                 const freeTimePercentage = 100 - villageGame.global.workTimePercentage;
                 const freeTimeEfficiency = freeTimePercentage / 100;
-                
+
                 // Birth rate: 0.1 per second at 100% free time, scaled by free time efficiency
                 birthRate = 0.1 * freeTimeEfficiency;
             }
         }
-        
+
         immigrationRateElements[1].textContent = `+${birthRate.toFixed(3)}/sec`;
         immigrationRateElements[1].className = 'people-rate-value positive';
     }

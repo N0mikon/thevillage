@@ -80,9 +80,14 @@ function handlePeasantDeathRate() {
             }
             
             // Check if there are employed peasants to remove from jobs
-            const totalEmployed = villageGame.jobs.Farmer.owned + villageGame.jobs.Woodcutter.owned + villageGame.jobs.Herbalist.owned + villageGame.jobs.Explorer.owned;
+            // Count all employed peasants dynamically
+            let totalEmployed = 0;
+            for (let jobKey in villageGame.jobs) {
+                totalEmployed += villageGame.jobs[jobKey].owned || 0;
+            }
+            totalEmployed += villageGame.global.expeditionPartySize || 0;
             const totalUnemployed = totalPeasants - totalEmployed;
-            
+
             // Determine if the death affects an employed or unemployed peasant
             let deathAffectsEmployed = false;
             if (totalEmployed > 0 && totalUnemployed > 0) {
@@ -94,19 +99,21 @@ function handlePeasantDeathRate() {
                 deathAffectsEmployed = true;
             }
             // If only unemployed exist, deathAffectsEmployed stays false
-            
+
             if (deathAffectsEmployed) {
                 // Death affects an employed peasant - remove from a job
+                // Build available jobs list dynamically
                 const availableJobs = [];
-                if (villageGame.jobs.Farmer.owned > 0) availableJobs.push('Farmer');
-                if (villageGame.jobs.Woodcutter.owned > 0) availableJobs.push('Woodcutter');
-                if (villageGame.jobs.Herbalist.owned > 0) availableJobs.push('Herbalist');
-                if (villageGame.jobs.Explorer.owned > 0) availableJobs.push('Explorer');
-                
+                for (let jobKey in villageGame.jobs) {
+                    if (villageGame.jobs[jobKey].owned > 0) {
+                        availableJobs.push(jobKey);
+                    }
+                }
+
                 // Randomly select a job to remove from
                 const randomJob = availableJobs[Math.floor(Math.random() * availableJobs.length)];
                 villageGame.jobs[randomJob].owned--;
-                
+
                 // Add death message for employed peasant
                 const deathMessages = [
                     `A ${randomJob} has died from natural causes.`,
@@ -120,7 +127,7 @@ function handlePeasantDeathRate() {
                 ];
                 const randomMessage = deathMessages[Math.floor(Math.random() * deathMessages.length)];
                 addMessage(randomMessage, "Death");
-                
+
                 // Update job displays
                 updateJobDisplays();
             } else {
@@ -159,53 +166,109 @@ function handlePeasantDeathRate() {
 function initializeMap() {
     const map = villageGame.map;
     map.tiles = [];
-    
-    // Define possible tile types and their probabilities
-    const tileTypes = [
-        { type: 'empty', probability: 0.5, name: 'Empty Land', resources: 0 },
-        { type: 'trees', probability: 0.3, name: 'Forest', resources: Math.floor(Math.random() * 30) + 10 },
-        { type: 'monster', probability: 0.2, name: 'Monster Den', resources: 0 }
-    ];
-    
+
+    // Monster names for variety
+    const monsterNames = ['Goblin Camp', 'Wolf Pack', 'Bandit Hideout', 'Spider Nest', 'Orc Warband', 'Troll Cave'];
+
     // Generate tiles
     for (let y = 0; y < map.height; y++) {
         map.tiles[y] = [];
         for (let x = 0; x < map.width; x++) {
-            // Place boss in top right corner (0,0 in our coordinate system)
+            // Place boss in top left corner (0,0)
             if (x === 0 && y === 0) {
                 map.tiles[y][x] = {
                     x: x,
                     y: y,
                     type: 'boss',
-                    name: 'Boss Lair',
+                    name: 'Dragon Lair',
                     explored: false,
-                    resources: 0
+                    defeated: false,
+                    strength: 500,
+                    resources: { wood: 200, food: 200, metal: 100, science: 50, gems: 100 }
                 };
             } else {
+                // Tile type probabilities based on distance from start (bottom-right)
+                const distanceFromStart = Math.sqrt(Math.pow(map.width - 1 - x, 2) + Math.pow(map.height - 1 - y, 2));
+                const maxDistance = Math.sqrt(Math.pow(map.width - 1, 2) + Math.pow(map.height - 1, 2));
+                const difficultyScale = distanceFromStart / maxDistance; // 0 at start, 1 at boss
+
                 const random = Math.random();
-                let cumulativeProbability = 0;
-                let selectedTile = tileTypes[0]; // Default to empty
-                
-                for (const tileType of tileTypes) {
-                    cumulativeProbability += tileType.probability;
-                    if (random <= cumulativeProbability) {
-                        selectedTile = tileType;
-                        break;
-                    }
+                let tile;
+
+                if (random < 0.35) {
+                    // Forest tile (35%) - gives wood
+                    const woodAmount = Math.floor(20 + Math.random() * 40 + difficultyScale * 30);
+                    tile = {
+                        type: 'trees',
+                        name: 'Forest',
+                        resources: { wood: woodAmount }
+                    };
+                } else if (random < 0.50) {
+                    // Meadow tile (15%) - gives food
+                    const foodAmount = Math.floor(15 + Math.random() * 30 + difficultyScale * 20);
+                    tile = {
+                        type: 'meadow',
+                        name: 'Fertile Meadow',
+                        resources: { food: foodAmount }
+                    };
+                } else if (random < 0.60) {
+                    // Stone deposit (10%) - gives stone
+                    const stoneAmount = Math.floor(10 + Math.random() * 20 + difficultyScale * 15);
+                    tile = {
+                        type: 'stone',
+                        name: 'Stone Deposit',
+                        resources: { metal: stoneAmount }
+                    };
+                } else if (random < 0.65) {
+                    // Iron vein (5%) - gives iron
+                    const ironAmount = Math.floor(5 + Math.random() * 15 + difficultyScale * 10);
+                    tile = {
+                        type: 'iron',
+                        name: 'Iron Vein',
+                        resources: { iron: ironAmount }
+                    };
+                } else if (random < 0.70) {
+                    // Herb patch (5%) - gives herbs
+                    const herbAmount = Math.floor(10 + Math.random() * 20);
+                    tile = {
+                        type: 'herbs',
+                        name: 'Herb Patch',
+                        resources: { herbs: herbAmount }
+                    };
+                } else if (random < 0.90) {
+                    // Monster tile (20%) - requires combat
+                    const monsterStrength = Math.floor(20 + difficultyScale * 80 + Math.random() * 30);
+                    const rewardMultiplier = 1 + difficultyScale;
+                    tile = {
+                        type: 'monster',
+                        name: monsterNames[Math.floor(Math.random() * monsterNames.length)],
+                        defeated: false,
+                        strength: monsterStrength,
+                        resources: {
+                            wood: Math.floor(10 * rewardMultiplier),
+                            food: Math.floor(15 * rewardMultiplier),
+                            gems: Math.floor(5 * rewardMultiplier)
+                        }
+                    };
+                } else {
+                    // Empty tile (10%)
+                    tile = {
+                        type: 'empty',
+                        name: 'Empty Land',
+                        resources: {}
+                    };
                 }
-                
+
                 map.tiles[y][x] = {
                     x: x,
                     y: y,
-                    type: selectedTile.type,
-                    name: selectedTile.name,
-                    explored: false,
-                    resources: selectedTile.type === 'trees' ? Math.floor(Math.random() * 30) + 10 : 0 // Only trees have resources for now
+                    ...tile,
+                    explored: false
                 };
             }
         }
     }
-    
+
     console.log("Map initialized with", map.width * map.height, "tiles");
 }
 
@@ -213,68 +276,181 @@ function initializeMap() {
 function handleExploration() {
     // Only explore if expedition is active and has explorers
     if (!villageGame.global.expeditionActive || villageGame.global.expeditionPartySize <= 0) return;
-    
+
     const expeditionExplorers = villageGame.global.expeditionPartySize;
-    
+
     // Calculate exploration rate (0.1 tile per second per expedition explorer)
     const workEfficiency = villageGame.global.workTimePercentage / 100;
     const moraleEfficiency = villageGame.global.morale / 100;
     const explorationRate = (expeditionExplorers * 0.1 * workEfficiency * moraleEfficiency) / villageGame.settings.speed;
-    
+
     // Add to exploration accumulator
     if (!villageGame.global.explorationAccumulator) {
         villageGame.global.explorationAccumulator = 0;
     }
     villageGame.global.explorationAccumulator += explorationRate;
-    
-        // Check if we've accumulated enough for a whole tile exploration
-        if (villageGame.global.explorationAccumulator >= 1.0) {
-            // Find the next unexplored tile in order (bottom left to top right)
-            let nextTile = null;
-            for (let y = villageGame.map.height - 1; y >= 0; y--) {
-                for (let x = 0; x < villageGame.map.width; x++) {
-                    if (!villageGame.map.tiles[y][x].explored) {
-                        nextTile = villageGame.map.tiles[y][x];
-                        break;
-                    }
+
+    // Check if we've accumulated enough for a whole tile exploration
+    if (villageGame.global.explorationAccumulator >= 1.0) {
+        // Find the next unexplored tile (bottom-right to top-left order)
+        let nextTile = null;
+        for (let y = villageGame.map.height - 1; y >= 0; y--) {
+            for (let x = villageGame.map.width - 1; x >= 0; x--) {
+                const tile = villageGame.map.tiles[y][x];
+                // Skip explored tiles, but allow revisiting undefeated monsters
+                if (!tile.explored || (tile.type === 'monster' && !tile.defeated) || (tile.type === 'boss' && !tile.defeated)) {
+                    nextTile = tile;
+                    break;
                 }
-                if (nextTile) break;
             }
-            
-            if (nextTile) {
-                nextTile.explored = true;
-                villageGame.map.exploredTiles++;
-            
-            // Add resources based on tile type
-            if (nextTile.type === 'trees' && nextTile.resources > 0) {
-                // Trees give wood
-                villageGame.resources.wood.owned += nextTile.resources;
-                
-                // Check max limits
-                if (villageGame.resources.wood.max > 0 && 
-                    villageGame.resources.wood.owned > villageGame.resources.wood.max) {
-                    villageGame.resources.wood.owned = villageGame.resources.wood.max;
-                }
-                
-                // Update display
-                updateResourceDisplay('wood');
-                
-                // Add exploration message
-                addMessage(`Explorers discovered ${nextTile.name} containing ${nextTile.resources} wood!`, "Loot");
-            } else if (nextTile.type === 'monster') {
-                addMessage(`Explorers discovered a ${nextTile.name}! They quickly retreat for now.`, "Loot");
-            } else if (nextTile.type === 'boss') {
-                addMessage(`Explorers discovered the ${nextTile.name}! A powerful boss awaits...`, "Loot");
-    } else {
-                addMessage(`Explorers explored ${nextTile.name} but found nothing of value.`, "Loot");
-            }
-            
-            // Update map display
-            updateMapDisplay();
+            if (nextTile) break;
         }
-        
+
+        if (nextTile) {
+            // Handle tile based on type
+            handleTileExploration(nextTile);
+        }
+
         // Reset accumulator (keep any remainder)
         villageGame.global.explorationAccumulator -= 1.0;
+    }
+}
+
+// Handle exploration of a specific tile
+function handleTileExploration(tile) {
+    const isFirstVisit = !tile.explored;
+    tile.explored = true;
+
+    if (isFirstVisit) {
+        villageGame.map.exploredTiles++;
+    }
+
+    // Handle based on tile type
+    if (tile.type === 'monster' || tile.type === 'boss') {
+        handleCombat(tile);
+    } else {
+        // Resource tiles - collect resources
+        collectTileResources(tile);
+    }
+
+    // Update map display
+    updateMapDisplay();
+    updateCombatDisplay();
+}
+
+// Handle combat with monsters
+function handleCombat(tile) {
+    // First monster discovery triggers Barracks unlock
+    if (!villageGame.global.monsterDiscovered) {
+        villageGame.global.monsterDiscovered = true;
+        villageGame.global.barracksUnlocked = true;
+        villageGame.buildings.Barracks.unlocked = true;
+
+        addMessage("Your explorers have discovered monsters in the wilderness! The village must prepare defenses.", "Story");
+        addMessage("Barracks Unlocked", "Unlock");
+
+        const barracksElement = document.querySelector('[data-building="Barracks"]');
+        if (barracksElement) {
+            barracksElement.style.display = 'block';
+        }
+    }
+
+    // Already defeated?
+    if (tile.defeated) {
+        addMessage(`The ${tile.name} has already been cleared.`, "Loot");
+        return;
+    }
+
+    // Calculate combat strength
+    const soldierCount = villageGame.jobs.Soldier ? villageGame.jobs.Soldier.owned : 0;
+    const soldierStrength = soldierCount * 10; // 10 combat strength per soldier
+    const combatStrength = soldierStrength;
+    villageGame.global.combatStrength = combatStrength;
+
+    // Combat resolution
+    if (combatStrength >= tile.strength) {
+        // Victory!
+        tile.defeated = true;
+        villageGame.global.monstersDefeated++;
+
+        if (tile.type === 'boss') {
+            villageGame.global.bossDefeated = true;
+            addMessage(`VICTORY! Your soldiers have slain the Dragon! The village is safe at last!`, "Combat");
+            addMessage(`Your ${soldierCount} soldiers (${combatStrength} strength) defeated the Dragon (${tile.strength} strength)!`, "Combat");
+        } else {
+            addMessage(`Victory! Your soldiers defeated the ${tile.name}!`, "Combat");
+            addMessage(`Combat: ${soldierCount} soldiers (${combatStrength} strength) vs ${tile.name} (${tile.strength} strength)`, "Combat");
+        }
+
+        // Collect rewards
+        collectTileResources(tile);
+    } else {
+        // Defeat - explorers retreat
+        if (tile.type === 'boss') {
+            addMessage(`Your soldiers are not strong enough to face the Dragon! Need ${tile.strength} strength, have ${combatStrength}.`, "Combat");
+        } else {
+            addMessage(`Your soldiers retreated from ${tile.name}! Need ${tile.strength} strength, have ${combatStrength}.`, "Combat");
+        }
+
+        // Lose some explorers in failed combat (1 explorer lost per failed attempt)
+        if (villageGame.global.expeditionPartySize > 0) {
+            villageGame.global.expeditionPartySize--;
+            villageGame.resources.peasants.owned--;
+            addMessage("An explorer was lost in the retreat!", "Death");
+            updateExpeditionDisplays();
+            updatePeoplePanelDisplays();
+        }
+    }
+}
+
+// Collect resources from a tile
+function collectTileResources(tile) {
+    if (!tile.resources || typeof tile.resources !== 'object') return;
+
+    let resourcesGained = [];
+
+    for (let resource in tile.resources) {
+        const amount = tile.resources[resource];
+        if (amount > 0 && villageGame.resources[resource]) {
+            villageGame.resources[resource].owned += amount;
+
+            // Check max limits
+            if (villageGame.resources[resource].max > 0 &&
+                villageGame.resources[resource].owned > villageGame.resources[resource].max) {
+                villageGame.resources[resource].owned = villageGame.resources[resource].max;
+            }
+
+            // Show resource if hidden
+            showResource(resource);
+            updateResourceDisplay(resource);
+
+            // Format resource name for display
+            const resourceNames = {
+                wood: 'Wood', food: 'Food', metal: 'Stone', science: 'Knowledge',
+                gems: 'Gold', herbs: 'Herbs', iron: 'Iron'
+            };
+            resourcesGained.push(`${amount} ${resourceNames[resource] || resource}`);
+        }
+    }
+
+    if (resourcesGained.length > 0) {
+        addMessage(`Explorers found ${tile.name}: ${resourcesGained.join(', ')}!`, "Loot");
+    } else if (tile.type === 'empty') {
+        addMessage(`Explorers explored ${tile.name} but found nothing of value.`, "Loot");
+    }
+}
+
+// Update combat display panel
+function updateCombatDisplay() {
+    const combatStatsElement = document.getElementById('combatStats');
+    if (combatStatsElement) {
+        const soldierCount = villageGame.jobs.Soldier ? villageGame.jobs.Soldier.owned : 0;
+        const combatStrength = soldierCount * 10;
+        combatStatsElement.innerHTML = `
+            <div>Soldiers: ${soldierCount}</div>
+            <div>Combat Strength: ${combatStrength}</div>
+            <div>Monsters Defeated: ${villageGame.global.monstersDefeated || 0}</div>
+        `;
     }
 }
 
@@ -282,26 +458,64 @@ function handleExploration() {
 function updateMapDisplay() {
     const mapPanel = document.querySelector('.map-panel');
     if (!mapPanel) return;
-    
+
     const map = villageGame.map;
     let mapHTML = '<div class="map-grid">';
-    
+
+    // Tile type icons
+    const tileIcons = {
+        trees: '🌲',
+        meadow: '🌾',
+        stone: '⛏️',
+        iron: '🔩',
+        herbs: '🌿',
+        monster: '👹',
+        boss: '🐉',
+        empty: '🏜️'
+    };
+
     for (let y = 0; y < map.height; y++) {
         for (let x = 0; x < map.width; x++) {
             const tile = map.tiles[y][x];
-            const tileClass = tile.explored ? 'map-tile explored' : 'map-tile unexplored';
-            const tileContent = tile.explored ? 
-                `<div class="tile-type">${tile.name}</div>` + 
-                (tile.resources > 0 ? `<div class="tile-resources">${tile.resources}</div>` : '') :
-                '<div class="tile-type">?</div>';
-            
-            mapHTML += `<div class="${tileClass}" data-x="${x}" data-y="${y}">${tileContent}</div>`;
+            let tileClass = 'map-tile';
+            let tileContent = '';
+
+            if (!tile.explored) {
+                tileClass += ' unexplored';
+                tileContent = '<div class="tile-icon">❓</div>';
+            } else {
+                // Apply different styles based on tile type
+                if (tile.type === 'monster') {
+                    tileClass += tile.defeated ? ' explored tile-monster-defeated' : ' tile-monster';
+                } else if (tile.type === 'boss') {
+                    tileClass += tile.defeated ? ' explored tile-boss-defeated' : ' tile-boss';
+                } else {
+                    tileClass += ' explored tile-' + tile.type;
+                }
+
+                const icon = tileIcons[tile.type] || '❓';
+                tileContent = `<div class="tile-icon">${icon}</div>`;
+
+                // Show strength for monsters/boss if not defeated
+                if ((tile.type === 'monster' || tile.type === 'boss') && !tile.defeated) {
+                    tileContent += `<div class="tile-strength">⚔️${tile.strength}</div>`;
+                }
+            }
+
+            mapHTML += `<div class="${tileClass}" data-x="${x}" data-y="${y}" title="${tile.explored ? tile.name : 'Unexplored'}">${tileContent}</div>`;
         }
     }
-    
+
     mapHTML += '</div>';
-    mapHTML += `<div class="map-stats">Explored: ${map.exploredTiles}/${map.width * map.height} tiles</div>`;
-    
+
+    // Combat stats panel
+    const soldierCount = villageGame.jobs.Soldier ? villageGame.jobs.Soldier.owned : 0;
+    const combatStrength = soldierCount * 10;
+    mapHTML += `<div class="map-stats">
+        <div>Explored: ${map.exploredTiles}/${map.width * map.height} tiles | Monsters Defeated: ${villageGame.global.monstersDefeated || 0}</div>
+        <div>Combat Strength: ⚔️${combatStrength} (${soldierCount} soldiers)</div>
+    </div>`;
+
     mapPanel.innerHTML = mapHTML;
 }
 
@@ -432,13 +646,105 @@ function buyBuilding(buildingName) {
     } else if (buildingName === 'HerbGarden') {
         // Increase herb storage capacity by 75
         villageGame.resources.herbs.max += building.effectValue;
-        
+
         // First time story
         if (building.owned === 1) {
             addMessage("The herb garden provides a dedicated space for cultivating and storing medicinal herbs. Your herbalists can now grow and preserve their healing plants more effectively.", "Construction");
         }
+    } else if (buildingName === 'Quarry') {
+        // Increase stone storage capacity by 100
+        villageGame.resources.metal.max += building.effectValue;
+
+        // Unlock Miner job
+        if (!villageGame.jobs.Miner.unlocked) {
+            villageGame.jobs.Miner.unlocked = true;
+            showResource('metal');
+
+            const minerElement = document.querySelector('[data-job="Miner"]');
+            if (minerElement) {
+                minerElement.style.display = 'block';
+            }
+
+            addMessage("Miner Job Unlocked", "Unlock");
+        }
+
+        // First time story
+        if (building.owned === 1) {
+            addMessage("The quarry opens access to rich stone deposits beneath the earth. Your miners can now extract valuable building materials.", "Construction");
+        }
+    } else if (buildingName === 'Workshop') {
+        // Increase all job production by 10%
+        villageGame.global.workshopBonus = (villageGame.global.workshopBonus || 0) + building.effectValue;
+
+        // First time story
+        if (building.owned === 1) {
+            addMessage("The workshop hums with activity as craftsmen improve tools and techniques. All workers become more efficient.", "Construction");
+        }
+    } else if (buildingName === 'Library') {
+        // Unlock Scholar job
+        if (!villageGame.jobs.Scholar.unlocked) {
+            villageGame.jobs.Scholar.unlocked = true;
+            showResource('science');
+
+            const scholarElement = document.querySelector('[data-job="Scholar"]');
+            if (scholarElement) {
+                scholarElement.style.display = 'block';
+            }
+
+            addMessage("Scholar Job Unlocked", "Unlock");
+        }
+
+        // First time story
+        if (building.owned === 1) {
+            addMessage("The library stands as a beacon of knowledge. Scholars gather to study ancient texts and uncover the secrets of the world.", "Construction");
+        }
+    } else if (buildingName === 'Market') {
+        // Unlock Merchant job
+        if (!villageGame.jobs.Merchant.unlocked) {
+            villageGame.jobs.Merchant.unlocked = true;
+            showResource('gems');
+
+            const merchantElement = document.querySelector('[data-job="Merchant"]');
+            if (merchantElement) {
+                merchantElement.style.display = 'block';
+            }
+
+            addMessage("Merchant Job Unlocked", "Unlock");
+        }
+
+        // First time story
+        if (building.owned === 1) {
+            addMessage("The market bustles with traders from distant lands. Gold begins to flow into your village coffers.", "Construction");
+        }
+    } else if (buildingName === 'Temple') {
+        // Increase base morale by 15%
+        villageGame.global.templeBonus = (villageGame.global.templeBonus || 0) + building.effectValue;
+        updateMorale();
+
+        // First time story
+        if (building.owned === 1) {
+            addMessage("The temple rises majestically, its spires reaching toward the heavens. The villagers find peace and purpose within its sacred walls.", "Construction");
+        }
+    } else if (buildingName === 'Barracks') {
+        // Unlock Soldier job
+        if (!villageGame.jobs.Soldier.unlocked) {
+            villageGame.jobs.Soldier.unlocked = true;
+            showResource('iron');
+
+            const soldierElement = document.querySelector('[data-job="Soldier"]');
+            if (soldierElement) {
+                soldierElement.style.display = 'block';
+            }
+
+            addMessage("Soldier Job Unlocked", "Unlock");
+        }
+
+        // First time story
+        if (building.owned === 1) {
+            addMessage("The barracks stands ready for training. Your soldiers will defend the village against any threat that emerges from the wilderness.", "Construction");
+        }
     }
-    
+
     // Update displays
     updateAllDisplays();
     updateResourcePerSecondDisplays();
@@ -453,33 +759,40 @@ function assignJob(jobName) {
         addMessage("You need peasants to assign to jobs!", "Loot");
         return false;
     }
-    
+
     const job = villageGame.jobs[jobName];
     if (!job) return false;
-    
+
     // Check if job is unlocked
     if (!job.unlocked) {
         addMessage(`${jobName} is not yet available!`, "Loot");
         return false;
     }
-    
+
     // Check if we have unemployed peasants available
-    const totalEmployed = villageGame.jobs.Farmer.owned + villageGame.jobs.Woodcutter.owned + villageGame.jobs.Herbalist.owned + villageGame.jobs.Explorer.owned;
+    // Count all employed peasants across ALL job types dynamically
+    let totalEmployed = 0;
+    for (let jobKey in villageGame.jobs) {
+        totalEmployed += villageGame.jobs[jobKey].owned || 0;
+    }
+    // Also count expedition party members
+    totalEmployed += villageGame.global.expeditionPartySize || 0;
+
     const totalPeasants = Math.floor(villageGame.resources.peasants.owned);
     const unemployed = totalPeasants - totalEmployed;
-    
+
     if (unemployed <= 0) {
         addMessage("No unemployed peasants available to assign!", "Loot");
         return false;
     }
-    
+
     // Assign peasant to job (don't change total peasant count)
     job.owned += 1;
-    
+
     // Update displays
     updateJobDisplays();
     updateResourcePerSecondDisplays();
-    
+
     // First hire story messages
     if (job.owned === 1) {
         if (jobName === 'Farmer') {
@@ -496,9 +809,11 @@ function assignJob(jobName) {
             addMessage("The first herbalist begins gathering medicinal herbs and creating healing remedies for the village.", "Villagers");
         } else if (jobName === 'Explorer') {
             addMessage("The first explorer sets out into the unknown wilderness, eager to discover what lies beyond the familiar forest.", "Villagers");
+        } else if (jobName === 'Soldier') {
+            addMessage("The first soldier takes up arms, ready to defend the village against any threat.", "Villagers");
         }
     }
-    
+
     return true;
 }
 
@@ -548,7 +863,7 @@ function addMessage(text, type) {
             dataType = 'villagers';
             break;
         case 'Combat':
-            messageClass = 'LootMessage';
+            messageClass = 'CombatMessage';
             icon = '⚔️';
             dataType = 'combat';
             break;
@@ -589,140 +904,61 @@ function addMessage(text, type) {
 
 // Update building displays
 function updateBuildingDisplays() {
-    // Update Campfire owned count
-    const campfireOwnedElement = document.querySelector('[data-building="Campfire"] .building-owned');
-    if (campfireOwnedElement) {
-        campfireOwnedElement.textContent = `Owned: ${villageGame.buildings.Campfire.owned}`;
+    // Helper function to format cost string
+    function formatCost(cost) {
+        const parts = [];
+        const resourceNames = { wood: 'Wood', food: 'Food', metal: 'Stone', science: 'Knowledge', gems: 'Gold', herbs: 'Herbs', iron: 'Iron' };
+        for (let res in cost) {
+            parts.push(`${cost[res]} ${resourceNames[res] || res}`);
+        }
+        return parts.join(', ');
     }
-    
-    // Update Campfire cost
-    const campfireCostElement = document.querySelector('[data-building="Campfire"] .building-cost');
-    if (campfireCostElement) {
-        const cost = villageGame.buildings.Campfire.cost.wood;
-        campfireCostElement.textContent = `Cost: ${cost} Wood`;
-    }
-    
-    // Update Wooden Hut owned count
-    const woodenHutOwnedElement = document.querySelector('[data-building="WoodenHut"] .building-owned');
-    if (woodenHutOwnedElement) {
-        woodenHutOwnedElement.textContent = `Owned: ${villageGame.buildings.WoodenHut.owned}`;
-    }
-    
-    // Update Wooden Hut cost
-    const woodenHutCostElement = document.querySelector('[data-building="WoodenHut"] .building-cost');
-    if (woodenHutCostElement) {
-        const cost = villageGame.buildings.WoodenHut.cost.wood;
-        woodenHutCostElement.textContent = `Cost: ${cost} Wood`;
-    }
-    
-    // Show/hide Wooden Hut based on unlock status
-    const woodenHutElement = document.querySelector('[data-building="WoodenHut"]');
-    if (woodenHutElement) {
-        woodenHutElement.style.display = villageGame.buildings.WoodenHut.unlocked ? 'block' : 'none';
-    }
-    
-    // Update Granary owned count
-    const granaryOwnedElement = document.querySelector('[data-building="Granary"] .building-owned');
-    if (granaryOwnedElement) {
-        granaryOwnedElement.textContent = `Owned: ${villageGame.buildings.Granary.owned}`;
-    }
-    
-    // Update Granary cost
-    const granaryCostElement = document.querySelector('[data-building="Granary"] .building-cost');
-    if (granaryCostElement) {
-        const woodCost = villageGame.buildings.Granary.cost.wood;
-        const foodCost = villageGame.buildings.Granary.cost.food;
-        granaryCostElement.textContent = `Cost: ${woodCost} Wood, ${foodCost} Food`;
-    }
-    
-    // Show/hide Granary based on unlock status
-    const granaryElement = document.querySelector('[data-building="Granary"]');
-    if (granaryElement) {
-        granaryElement.style.display = villageGame.buildings.Granary.unlocked ? 'block' : 'none';
-    }
-    
-    // Update Lumberyard owned count
-    const lumberyardOwnedElement = document.querySelector('[data-building="Lumberyard"] .building-owned');
-    if (lumberyardOwnedElement) {
-        lumberyardOwnedElement.textContent = `Owned: ${villageGame.buildings.Lumberyard.owned}`;
-    }
-    
-    // Update Lumberyard cost
-    const lumberyardCostElement = document.querySelector('[data-building="Lumberyard"] .building-cost');
-    if (lumberyardCostElement) {
-        const cost = villageGame.buildings.Lumberyard.cost.wood;
-        lumberyardCostElement.textContent = `Cost: ${cost} Wood`;
-    }
-    
-    // Show/hide Lumberyard based on unlock status
-    const lumberyardElement = document.querySelector('[data-building="Lumberyard"]');
-    if (lumberyardElement) {
-        lumberyardElement.style.display = villageGame.buildings.Lumberyard.unlocked ? 'block' : 'none';
-    }
-    
-    // Update Herb Garden owned count
-    const herbGardenOwnedElement = document.querySelector('[data-building="HerbGarden"] .building-owned');
-    if (herbGardenOwnedElement) {
-        herbGardenOwnedElement.textContent = `Owned: ${villageGame.buildings.HerbGarden.owned}`;
-    }
-    
-    // Update Herb Garden cost
-    const herbGardenCostElement = document.querySelector('[data-building="HerbGarden"] .building-cost');
-    if (herbGardenCostElement) {
-        const woodCost = villageGame.buildings.HerbGarden.cost.wood;
-        const herbsCost = villageGame.buildings.HerbGarden.cost.herbs;
-        herbGardenCostElement.textContent = `Cost: ${woodCost} Wood, ${herbsCost} Herbs`;
-    }
-    
-    // Show/hide Herb Garden based on unlock status
-    const herbGardenElement = document.querySelector('[data-building="HerbGarden"]');
-    if (herbGardenElement) {
-        herbGardenElement.style.display = villageGame.buildings.HerbGarden.unlocked ? 'block' : 'none';
+
+    // Update all buildings dynamically
+    for (let buildingName in villageGame.buildings) {
+        const building = villageGame.buildings[buildingName];
+        const buildingElement = document.querySelector(`[data-building="${buildingName}"]`);
+
+        if (buildingElement) {
+            // Update owned count
+            const ownedElement = buildingElement.querySelector('.building-owned');
+            if (ownedElement) {
+                ownedElement.textContent = `Owned: ${building.owned}`;
+            }
+
+            // Update cost
+            const costElement = buildingElement.querySelector('.building-cost');
+            if (costElement) {
+                costElement.textContent = `Cost: ${formatCost(building.cost)}`;
+            }
+
+            // Show/hide based on unlock status (Campfire is always visible)
+            if (buildingName !== 'Campfire') {
+                buildingElement.style.display = building.unlocked ? 'block' : 'none';
+            }
+        }
     }
 }
 
 // Update job displays
 function updateJobDisplays() {
-    // Update farmer display
-    const farmerElement = document.querySelector('[data-job="Farmer"]');
-    if (farmerElement) {
-        // Update owned count
-        const farmerOwnedElement = farmerElement.querySelector('.building-owned');
-        if (farmerOwnedElement) {
-            farmerOwnedElement.textContent = `Assigned: ${villageGame.jobs.Farmer.owned}`;
+    // Update all jobs dynamically
+    for (let jobName in villageGame.jobs) {
+        const job = villageGame.jobs[jobName];
+        const jobElement = document.querySelector(`[data-job="${jobName}"]`);
+
+        if (jobElement) {
+            // Update assigned count
+            const ownedElement = jobElement.querySelector('.building-owned');
+            if (ownedElement) {
+                ownedElement.textContent = `Assigned: ${job.owned}`;
+            }
+
+            // Show/hide based on unlock status
+            jobElement.style.display = job.unlocked ? 'block' : 'none';
         }
     }
-    
-    // Update woodcutter display
-    const woodcutterElement = document.querySelector('[data-job="Woodcutter"]');
-    if (woodcutterElement) {
-        // Update owned count
-        const woodcutterOwnedElement = woodcutterElement.querySelector('.building-owned');
-        if (woodcutterOwnedElement) {
-            woodcutterOwnedElement.textContent = `Assigned: ${villageGame.jobs.Woodcutter.owned}`;
-        }
-    }
-    
-    // Update herbalist display
-    const herbalistElement = document.querySelector('[data-job="Herbalist"]');
-    if (herbalistElement) {
-        // Update owned count
-        const herbalistOwnedElement = herbalistElement.querySelector('.building-owned');
-        if (herbalistOwnedElement) {
-            herbalistOwnedElement.textContent = `Assigned: ${villageGame.jobs.Herbalist.owned}`;
-        }
-    }
-    
-    // Update explorer display
-    const explorerElement = document.querySelector('[data-job="Explorer"]');
-    if (explorerElement) {
-        // Update owned count
-        const explorerOwnedElement = explorerElement.querySelector('.building-owned');
-        if (explorerOwnedElement) {
-            explorerOwnedElement.textContent = `Assigned: ${villageGame.jobs.Explorer.owned}`;
-        }
-    }
-    
+
     // Update building filter to reflect current unlock status
     if (typeof window.filterBuildingItems === 'function') {
         // Get current active tab
@@ -730,7 +966,7 @@ function updateJobDisplays() {
         const currentFilter = activeTab ? activeTab.getAttribute('data-filter') : 'all';
         window.filterBuildingItems(currentFilter);
     }
-    
+
     // Resource per second displays are updated by updateAllDisplays()
 }
 
@@ -1021,32 +1257,35 @@ function updateWorkTime(percentage) {
 function updateMorale() {
     const currentPopulation = Math.floor(villageGame.resources.peasants.owned);
     const workTime = villageGame.global.workTimePercentage;
-    
+
     // Base morale starts at 100%
     let baseMorale = 100;
-    
+
     // Population penalty: decrease by 2% for each person over 30
     if (currentPopulation > 30) {
         const populationOver30 = currentPopulation - 30;
         baseMorale = Math.max(0, 100 - (populationOver30 * 2));
     }
-    
+
     // Work time bonus: lower work time = higher morale
     // At 100% work time: no bonus
     // At 50% work time: +25% morale bonus
     // At 0% work time: +50% morale bonus
     const workTimeBonus = (100 - workTime) * 0.5;
-    
-    // Final morale = base morale + work time bonus, capped at 150%
-    villageGame.global.morale = Math.min(150, baseMorale + workTimeBonus);
-    
+
+    // Temple bonus: +15% per temple
+    const templeBonus = villageGame.global.templeBonus || 0;
+
+    // Final morale = base morale + work time bonus + temple bonus, capped at 200%
+    villageGame.global.morale = Math.min(200, baseMorale + workTimeBonus + templeBonus);
+
     // Update morale display
     const moraleValueElement = document.getElementById('moraleValue');
     if (moraleValueElement) {
         moraleValueElement.textContent = Math.round(villageGame.global.morale);
     }
-    
-    console.log("Morale updated to:", Math.round(villageGame.global.morale) + "% (Population:", currentPopulation + ", Work Time:", workTime + "%)");
+
+    console.log("Morale updated to:", Math.round(villageGame.global.morale) + "% (Population:", currentPopulation + ", Work Time:", workTime + "%, Temple Bonus:", templeBonus + "%)");
 }
 
 // Update city type display

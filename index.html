@@ -835,6 +835,88 @@
             color: #e2e8f0;
             text-align: center;
         }
+
+        /* Tile type specific styles */
+        .tile-icon {
+            font-size: clamp(0.8rem, 1vw, 1.2rem);
+        }
+
+        .tile-strength {
+            font-size: clamp(0.4rem, 0.5vw, 0.6rem);
+            color: #f56565;
+            font-weight: 600;
+        }
+
+        .map-tile.tile-trees {
+            background: linear-gradient(145deg, #2f855a, #276749);
+            border-color: #22543d;
+        }
+
+        .map-tile.tile-meadow {
+            background: linear-gradient(145deg, #d69e2e, #b7791f);
+            border-color: #975a16;
+        }
+
+        .map-tile.tile-stone {
+            background: linear-gradient(145deg, #718096, #4a5568);
+            border-color: #2d3748;
+        }
+
+        .map-tile.tile-iron {
+            background: linear-gradient(145deg, #4a5568, #2d3748);
+            border-color: #1a202c;
+        }
+
+        .map-tile.tile-herbs {
+            background: linear-gradient(145deg, #48bb78, #38a169);
+            border-color: #276749;
+        }
+
+        .map-tile.tile-empty {
+            background: linear-gradient(145deg, #4a5568, #2d3748);
+            border-color: #1a202c;
+        }
+
+        .map-tile.tile-monster {
+            background: linear-gradient(145deg, #e53e3e, #c53030);
+            border-color: #9b2c2c;
+            animation: monster-pulse 2s infinite;
+        }
+
+        .map-tile.tile-monster-defeated {
+            background: linear-gradient(145deg, #38a169, #2f855a);
+            border-color: #22543d;
+        }
+
+        .map-tile.tile-boss {
+            background: linear-gradient(145deg, #805ad5, #6b46c1);
+            border-color: #553c9a;
+            animation: boss-pulse 1.5s infinite;
+            box-shadow: 0 0 10px rgba(128, 90, 213, 0.5);
+        }
+
+        .map-tile.tile-boss-defeated {
+            background: linear-gradient(145deg, #d69e2e, #b7791f);
+            border-color: #975a16;
+            box-shadow: 0 0 10px rgba(214, 158, 46, 0.5);
+        }
+
+        @keyframes monster-pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.8; }
+        }
+
+        @keyframes boss-pulse {
+            0%, 100% { transform: scale(1); box-shadow: 0 0 10px rgba(128, 90, 213, 0.5); }
+            50% { transform: scale(1.02); box-shadow: 0 0 15px rgba(128, 90, 213, 0.8); }
+        }
+
+        /* Combat log message style */
+        .log-message.CombatMessage {
+            background: rgba(229, 62, 62, 0.15);
+            border-left: 3px solid #e53e3e;
+            color: #e2e8f0;
+        }
         
         
         /* Responsive adjustments */
@@ -949,6 +1031,18 @@
                         <div class="resource-rate">+0.000/sec</div>
                     </div>
                     <button class="resource-button">Smelt</button>
+                </div>
+
+                <div class="resource-card" data-resource="gems" id="goldCard" style="display: none;">
+                    <div class="resource-header">
+                        <div class="resource-title">Gold</div>
+                        <div class="resource-value-container">
+                            <div class="resource-value">0</div>
+                            <div class="resource-max">∞</div>
+                        </div>
+                        <div class="resource-rate">+0.000/sec</div>
+                    </div>
+                    <button class="resource-button">Trade</button>
                 </div>
             </div>
         </div>
